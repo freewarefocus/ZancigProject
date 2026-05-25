@@ -1,0 +1,21 @@
+# Dot folders (internal/not ready for publishing)
+.planning/
+.ThumbyColor/
+.ZCID Hardware Project/
+.docs/
+
+# Internal scripts
+*.bat
+*.ps1
+
+# Claude-related
+CLAUDE.md
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
