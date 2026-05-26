@@ -1,0 +1,6 @@
+# Exclude dot-directories (internal docs, planning, working files)
+.*/
+
+# Temp files
+*.tmp
+*.tmp.*

@@ -190,14 +190,32 @@ def check_button(btn_name='TL'):
 
 def battery_voltage():
     """Read battery voltage. V3 has a 1:2 voltage divider on GPIO 9."""
-    uv = _batt.read_uv()
-    return uv * 2 / 1_000_000
+    samples = []
+    for _ in range(5):
+        samples.append(_batt.read_uv())
+        time.sleep_ms(2)
+    samples.sort()
+    avg = (samples[1] + samples[2] + samples[3]) // 3
+    return avg * 2 / 1_000_000
+
+_BATT_TABLE = (
+    (4.20, 100), (4.10, 90), (4.00, 80), (3.90, 60),
+    (3.80, 40), (3.70, 20), (3.60, 10), (3.50, 5), (3.30, 0),
+)
 
 def battery_percent():
-    """Return battery percentage (0-100), linear map 3.3V-4.2V."""
+    """Return battery percentage (0-100), mapped to LiPo discharge curve."""
     v = battery_voltage()
-    pct = int((v - 3.3) / (4.2 - 3.3) * 100)
-    return max(0, min(100, pct))
+    if v >= _BATT_TABLE[0][0]:
+        return 100
+    if v <= _BATT_TABLE[-1][0]:
+        return 0
+    for i in range(len(_BATT_TABLE) - 1):
+        v_hi, p_hi = _BATT_TABLE[i]
+        v_lo, p_lo = _BATT_TABLE[i + 1]
+        if v >= v_lo:
+            return int(p_lo + (v - v_lo) / (v_hi - v_lo) * (p_hi - p_lo))
+    return 0
 
 
 # -- Accelerometer -------------------------------------------------------------

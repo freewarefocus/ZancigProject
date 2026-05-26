@@ -5,6 +5,7 @@ UP (TL): short=cycle, long=launch routine
 MENU (TR): long=Python mode (240MHz, drops to REPL for Thonny)
 """
 import zancig
+import zri
 import time
 from machine import freq
 
@@ -22,7 +23,7 @@ def wait_menu_input(timeout_ms=600_000):
                 ms = time.ticks_diff(time.ticks_ms(), t)
                 kind = 'long' if ms >= zancig.LONG_PRESS_MS else 'short'
                 return name, kind
-        time.sleep_ms(50)
+        time.sleep_ms(100)
     return None
 
 
@@ -37,7 +38,7 @@ def enter_python_mode():
 
 
 def main():
-    zancig.init()
+    zri.init()
     routines = zancig.list_routines()
 
     if not routines:
@@ -46,15 +47,30 @@ def main():
         zancig.display_show()
         return
 
+    freq(80_000_000)
     idx = 0
     last_idx = -1
+    last_batt_ms = 0
+    BATT_INTERVAL = 300_000  # 5 minutes
     while True:
-        if idx != last_idx:
+        now = time.ticks_ms()
+        need_redraw = (idx != last_idx) or time.ticks_diff(now, last_batt_ms) >= BATT_INTERVAL
+        if need_redraw:
             pct = zancig.battery_percent()
+            last_batt_ms = time.ticks_ms()
+            if pct <= 5:
+                zancig.display_clear()
+                zancig.display_text("LOW BATTERY", 10, 70)
+                zancig.display_text(f"{pct}%", 80, 110)
+                zancig.display_show_full()
+                time.sleep(3)
+                import machine
+                machine.deepsleep()
             mhz = freq() // 1_000_000
+            batt_str = f"!{pct}%" if pct <= 15 else f"{pct}%"
             zancig.display_clear()
             zancig.display_text("ZANCIG", 5, 5)
-            zancig.display_text(f"{mhz}MHz {pct}%", 5, 25)
+            zancig.display_text(f"{mhz}MHz {batt_str}", 5, 25)
             zancig.display_rect(0, 44, 200, 1)
             for i, name in enumerate(routines):
                 marker = ">" if i == idx else " "
@@ -64,13 +80,13 @@ def main():
 
         result = wait_menu_input()
         if result is None:
-            last_idx = -1
             continue
         btn, press = result
         if btn == 'TL' and press == 'short':
             idx = (idx + 1) % len(routines)
         elif btn == 'TL' and press == 'long':
             last_idx = -1
+            freq(160_000_000)
             try:
                 zancig.run_routine(routines[idx])
             except Exception as e:
@@ -84,6 +100,7 @@ def main():
                         break
                 zancig.display_show_full()
                 time.sleep(5)
+            freq(80_000_000)
         elif btn == 'TR' and press == 'long':
             enter_python_mode()
             return  # exits to REPL
