@@ -50,7 +50,12 @@ def enter_deep_sleep():
     import esp32
     from machine import Pin, deepsleep
     zancig.prepare_sleep()
-    wake_pins = [Pin(0), Pin(7), Pin(6), Pin(8)]
+    wake_pins = [
+        Pin(0, Pin.IN, Pin.PULL_UP),
+        Pin(7, Pin.IN, Pin.PULL_UP),
+        Pin(6, Pin.IN, Pin.PULL_UP),
+        Pin(8, Pin.IN, Pin.PULL_UP),
+    ]
     esp32.wake_on_ext1(wake_pins, esp32.WAKEUP_ALL_LOW)
     deepsleep()
 
