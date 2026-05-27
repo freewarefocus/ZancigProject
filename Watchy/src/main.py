@@ -46,15 +46,17 @@ def enter_python_mode():
 
 
 def enter_deep_sleep():
-    """Blank screen, suspend peripherals, deep sleep. Wakes on any button (full reboot)."""
+    """Blank screen, suspend peripherals, deep sleep. Wakes on any button (full reboot).
+    GPIO 0 (TR) excluded from wake mask: boot strap pin floats low during
+    deep sleep (ESP-IDF strips RTC pull-ups via rtcio_hal_isolate on EXT1 pins).
+    TL/BL/BR still wake the device — any button returns to menu."""
     import esp32
     from machine import Pin, deepsleep
     zancig.prepare_sleep()
     wake_pins = [
-        Pin(0, Pin.IN, Pin.PULL_UP),
-        Pin(7, Pin.IN, Pin.PULL_UP),
-        Pin(6, Pin.IN, Pin.PULL_UP),
-        Pin(8, Pin.IN, Pin.PULL_UP),
+        Pin(7, Pin.IN, Pin.PULL_UP),   # BL (MENU)
+        Pin(6, Pin.IN, Pin.PULL_UP),   # TL (BACK)
+        Pin(8, Pin.IN, Pin.PULL_UP),   # BR (DOWN)
     ]
     esp32.wake_on_ext1(wake_pins, esp32.WAKEUP_ALL_LOW)
     deepsleep()
