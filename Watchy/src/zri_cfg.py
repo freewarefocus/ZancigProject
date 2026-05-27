@@ -14,6 +14,6 @@ config = {
     'tilt_invert': False,            # Reverse tilt direction
     'tilt_threshold': 300,           # Accel delta to register a tilt
     'tick_interval_ms': 800,         # Interval between counting ticks
-    'confirm_btn': 'TL',             # Button to confirm selection
+    'confirm_btn': 'TR',             # Button to confirm selection (UP, top-right)
     'default_centre': 5,             # Starting digit for tilt input (0-9)
 }

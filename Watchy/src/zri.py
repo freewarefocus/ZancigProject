@@ -39,7 +39,7 @@ def init():
             'tilt_invert': False,
             'tilt_threshold': zancig.TILT_THRESHOLD,
             'tick_interval_ms': zancig.TICK_INTERVAL_MS,
-            'confirm_btn': 'TL',
+            'confirm_btn': 'TR',
             'default_centre': 5,
         }
 
@@ -80,12 +80,13 @@ def stealth():
     return True
 
 
-def done():
+def done(timeout_ms=60_000):
     """Routine is finished. Clears display for stealth, waits for any button
-    press, then returns to the launcher menu. Safe post-performance state --
-    device just sits dark until the performer is ready to interact."""
+    press or timeout, then returns to the launcher menu.
+    On timeout, returns so the launcher can handle its own sleep logic."""
     stealth()
-    while True:
+    start = time.ticks_ms()
+    while time.ticks_diff(time.ticks_ms(), start) < timeout_ms:
         for name in ('TL', 'TR', 'BL', 'BR'):
             if zancig.check_button(name):
                 return
@@ -389,7 +390,7 @@ def get_digit(lo=1, hi=9, prompt=None, format_fn=None):
 
     centre = _cfg.get('default_centre', 5)
     centre = max(lo, min(hi, centre))
-    confirm_btn = _cfg.get('confirm_btn', 'TL')
+    confirm_btn = _cfg.get('confirm_btn', 'TR')
     threshold = _cfg.get('tilt_threshold', 300)
     interval = _cfg.get('tick_interval_ms', 800)
 
@@ -430,7 +431,7 @@ def get_digit(lo=1, hi=9, prompt=None, format_fn=None):
 
 def get_confirm(prompt=None):
     """Short press = yes (True), long press = no (False)."""
-    confirm_btn = _cfg.get('confirm_btn', 'TL')
+    confirm_btn = _cfg.get('confirm_btn', 'TR')
 
     if prompt and CAPS.get('screen'):
         show([prompt, '', 'Short=YES', 'Long=NO'])

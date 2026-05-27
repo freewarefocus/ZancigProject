@@ -11,9 +11,9 @@ import struct
 # -- Hardware constants (Watchy V3) -------------------------------------------
 
 MOTOR_PIN   = 17
-BTN_TL      = 0    # UP    (top-left,     also boot strap pin)
-BTN_TR      = 7    # MENU  (top-right)
-BTN_BL      = 6    # BACK  (bottom-left)
+BTN_TL      = 6    # BACK  (top-left)
+BTN_TR      = 0    # UP    (top-right,    also boot strap pin)
+BTN_BL      = 7    # MENU  (bottom-left)
 BTN_BR      = 8    # DOWN  (bottom-right)
 
 EPD_CS      = 33
@@ -58,11 +58,14 @@ _buf   = None
 _bma   = None
 _batt  = None
 _needs_full = True
+_boot_ms = 0
 
 
 def init():
     """Call once at startup to initialise all hardware."""
-    global _motor, _btns, _epd, _fb, _buf, _bma, _batt, _needs_full
+    global _motor, _btns, _epd, _fb, _buf, _bma, _batt, _needs_full, _boot_ms
+
+    _boot_ms = time.ticks_ms()
 
     # Power management: lower CPU clock, disable radio
     freq(80_000_000)
@@ -167,7 +170,7 @@ def send_ack_echo(n):
 
 # -- Buttons -------------------------------------------------------------------
 
-def wait_button(btn_name='TL'):
+def wait_button(btn_name='TR'):
     """Block until named button pressed. Returns 'short' or 'long'."""
     btn = _btns[btn_name]
     while btn.value() != BTN_ACTIVE:
@@ -178,7 +181,7 @@ def wait_button(btn_name='TL'):
     ms = time.ticks_diff(time.ticks_ms(), t)
     return 'long' if ms >= LONG_PRESS_MS else 'short'
 
-def check_button(btn_name='TL'):
+def check_button(btn_name='TR'):
     """Non-blocking. Returns 'short', 'long', or None."""
     btn = _btns[btn_name]
     if btn.value() != BTN_ACTIVE:
@@ -190,6 +193,10 @@ def check_button(btn_name='TL'):
 
 def battery_voltage():
     """Read battery voltage. V3 has a 1:2 voltage divider on GPIO 9."""
+    # V3 has ~500ms GPIO spike after boot -- wait it out
+    elapsed = time.ticks_diff(time.ticks_ms(), _boot_ms)
+    if elapsed < 600:
+        time.sleep_ms(600 - elapsed)
     samples = []
     for _ in range(5):
         samples.append(_batt.read_uv())
@@ -218,6 +225,25 @@ def battery_percent():
     return 0
 
 
+# -- Power Management ----------------------------------------------------------
+
+def prepare_sleep():
+    """Prepare all hardware for deep sleep."""
+    _motor.off()
+    try:
+        _bma.suspend()
+    except Exception:
+        pass
+    display_clear()
+    display_show()          # Fast partial refresh to blank screen
+    _epd.sleep()            # EPD deep sleep (zero power, retains blank image)
+
+
+def is_usb_connected():
+    """Check USB presence via GPIO 21."""
+    return Pin(21, Pin.IN).value() == 1
+
+
 # -- Accelerometer -------------------------------------------------------------
 
 def accel_xyz():
@@ -240,7 +266,7 @@ def get_jog_delta(neutral_xyz):
 
 # -- Jog Dial Input ------------------------------------------------------------
 
-def read_digit(btn_name='TL', centre=5, lo=1, hi=9):
+def read_digit(btn_name='TR', centre=5, lo=1, hi=9):
     """
     Full jog dial input with haptic echo and ACK/NACK loop.
     Returns confirmed digit (int).
@@ -287,7 +313,7 @@ def read_digit(btn_name='TL', centre=5, lo=1, hi=9):
                 send_nack()
                 break
 
-def read_coordinate(btn_name='TL'):
+def read_coordinate(btn_name='TR'):
     """Read two confirmed digits. Returns (row, col) tuple."""
     row = read_digit(btn_name)
     col = read_digit(btn_name)

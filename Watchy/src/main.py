@@ -1,21 +1,29 @@
 """
 main.py -- Zancig launcher
 Auto-runs on device boot. Shows routine menu on screen.
-UP (TL): short=cycle, long=launch routine
-MENU (TR): long=Python mode (240MHz, drops to REPL for Thonny)
+Three-state power model: Active -> Dark -> Deep Sleep.
+UP (TR): short=cycle, long=launch routine
+MENU (BL): long=Python mode (240MHz, drops to REPL for Thonny)
+USB connected: sleep timers disabled (stays active for file transfer)
 """
 import zancig
 import zri
 import time
 from machine import freq
 
+IDLE_TIMEOUT_MS = 30_000    # 30s no input -> blank screen (dark mode)
+SLEEP_GRACE_MS  = 10_000    # 10s more -> deep sleep
+BATT_INTERVAL   = 300_000   # 5 min battery check
+INPUT_POLL_MS   = 5_000     # Active poll cycle
+DARK_POLL_MS    = 2_000     # Dark mode poll cycle
 
-def wait_menu_input(timeout_ms=600_000):
-    """Poll both TL and TR buttons. Returns (button, press_type) or None on timeout."""
+
+def wait_menu_input(timeout_ms=5_000):
+    """Poll TR and BL buttons. Returns (button, press_type) or None on timeout."""
     btns = zancig._btns
     start = time.ticks_ms()
     while time.ticks_diff(time.ticks_ms(), start) < timeout_ms:
-        for name in ('TL', 'TR'):
+        for name in ('TR', 'BL'):
             if btns[name].value() == zancig.BTN_ACTIVE:
                 t = time.ticks_ms()
                 while btns[name].value() == zancig.BTN_ACTIVE:
@@ -37,6 +45,16 @@ def enter_python_mode():
     zancig.display_show()
 
 
+def enter_deep_sleep():
+    """Blank screen, suspend peripherals, deep sleep. Wakes on any button (full reboot)."""
+    import esp32
+    from machine import Pin, deepsleep
+    zancig.prepare_sleep()
+    wake_pins = [Pin(0), Pin(7), Pin(6), Pin(8)]
+    esp32.wake_on_ext1(wake_pins, esp32.WAKEUP_ALL_LOW)
+    deepsleep()
+
+
 def main():
     zri.init()
     routines = zancig.list_routines()
@@ -51,40 +69,71 @@ def main():
     idx = 0
     last_idx = -1
     last_batt_ms = 0
-    BATT_INTERVAL = 300_000  # 5 minutes
+    last_activity_ms = time.ticks_ms()
+    is_dark = False
+
     while True:
         now = time.ticks_ms()
-        need_redraw = (idx != last_idx) or time.ticks_diff(now, last_batt_ms) >= BATT_INTERVAL
-        if need_redraw:
-            pct = zancig.battery_percent()
-            last_batt_ms = time.ticks_ms()
-            if pct <= 5:
-                zancig.display_clear()
-                zancig.display_text("LOW BATTERY", 10, 70)
-                zancig.display_text(f"{pct}%", 80, 110)
-                zancig.display_show_full()
-                time.sleep(3)
-                import machine
-                machine.deepsleep()
-            mhz = freq() // 1_000_000
-            batt_str = f"!{pct}%" if pct <= 15 else f"{pct}%"
-            zancig.display_clear()
-            zancig.display_text("ZANCIG", 5, 5)
-            zancig.display_text(f"{mhz}MHz {batt_str}", 5, 25)
-            zancig.display_rect(0, 44, 200, 1)
-            for i, name in enumerate(routines):
-                marker = ">" if i == idx else " "
-                zancig.display_text(f"{marker}{name[:10]}", 5, 50 + i * 20)
-            zancig.display_show()
-            last_idx = idx
+        idle_ms = time.ticks_diff(now, last_activity_ms)
 
-        result = wait_menu_input()
+        # Skip sleep transitions when USB is connected (charging / file transfer)
+        usb = zancig.is_usb_connected()
+
+        # Deep sleep check: dark mode exceeded grace period
+        if is_dark and not usb and idle_ms >= IDLE_TIMEOUT_MS + SLEEP_GRACE_MS:
+            enter_deep_sleep()
+
+        # Dark mode check: idle exceeded timeout
+        if not is_dark and not usb and idle_ms >= IDLE_TIMEOUT_MS:
+            zancig.display_clear()
+            zancig.display_show()
+            is_dark = True
+
+        # Draw menu (only when active and needed)
+        if not is_dark:
+            need_redraw = (idx != last_idx) or time.ticks_diff(now, last_batt_ms) >= BATT_INTERVAL
+            if need_redraw:
+                pct = zancig.battery_percent()
+                last_batt_ms = time.ticks_ms()
+                if pct <= 5:
+                    zancig.display_clear()
+                    zancig.display_text("LOW BATTERY", 10, 70)
+                    zancig.display_text(f"{pct}%", 80, 110)
+                    zancig.display_show_full()
+                    time.sleep(3)
+                    enter_deep_sleep()
+                mhz = freq() // 1_000_000
+                batt_str = f"!{pct}%" if pct <= 15 else f"{pct}%"
+                zancig.display_clear()
+                zancig.display_text("ZANCIG", 5, 5)
+                zancig.display_text(f"{mhz}MHz {batt_str}", 5, 25)
+                zancig.display_rect(0, 44, 200, 1)
+                for i, name in enumerate(routines):
+                    marker = ">" if i == idx else " "
+                    zancig.display_text(f"{marker}{name[:10]}", 5, 50 + i * 20)
+                zancig.display_show()
+                last_idx = idx
+
+        # Poll input (shorter timeout when dark)
+        poll_ms = DARK_POLL_MS if is_dark else INPUT_POLL_MS
+        result = wait_menu_input(poll_ms)
         if result is None:
             continue
+
+        # Any button press resets activity
+        last_activity_ms = time.ticks_ms()
+
+        # Wake from dark mode: redraw menu, consume the press
+        if is_dark:
+            is_dark = False
+            last_idx = -1  # force redraw
+            last_batt_ms = 0
+            continue
+
         btn, press = result
-        if btn == 'TL' and press == 'short':
+        if btn == 'TR' and press == 'short':
             idx = (idx + 1) % len(routines)
-        elif btn == 'TL' and press == 'long':
+        elif btn == 'TR' and press == 'long':
             last_idx = -1
             freq(160_000_000)
             try:
@@ -101,7 +150,8 @@ def main():
                 zancig.display_show_full()
                 time.sleep(5)
             freq(80_000_000)
-        elif btn == 'TR' and press == 'long':
+            last_activity_ms = time.ticks_ms()
+        elif btn == 'BL' and press == 'long':
             enter_python_mode()
             return  # exits to REPL
 

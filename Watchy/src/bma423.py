@@ -4,6 +4,7 @@ No C extension required. Registers from BMA423 datasheet (BST-BMA423-DS000).
 """
 
 import struct
+import time
 
 
 class BMA423:
@@ -34,3 +35,14 @@ class BMA423:
         y = struct.unpack_from('<h', data, 2)[0] >> 4
         z = struct.unpack_from('<h', data, 4)[0] >> 4
         return x, y, z
+
+    def suspend(self):
+        """Lowest power state (~3.5uA). Disables accelerometer."""
+        self._write(0x7D, 0x00)  # PWR_CTRL: disable accel
+        self._write(0x7C, 0x02)  # PWR_CONF: enable advanced power save
+
+    def resume(self):
+        """Wake from suspend. Restores 100Hz operation."""
+        self._write(0x7C, 0x00)  # PWR_CONF: disable advanced power save
+        self._write(0x7D, 0x04)  # PWR_CTRL: enable accel
+        time.sleep_ms(2)
