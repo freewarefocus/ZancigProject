@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% block title %}PageWalker - {{ project.title }} - Markers{% endblock %}
+
+{% block breadcrumb %}
+<span class="sep">/</span>
+<a href="/project/{{ project.slug }}">{{ project.title }}</a>
+<span class="sep">/</span>
+<a href="/project/{{ project.slug }}/markers">Markers</a>
+{% endblock %}
+
+{% block extra_css %}
+.markers-header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 16px;
+}
+
+.marker-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.marker-table th {
+  text-align: left; padding: 8px 12px;
+  font-family: 'Source Code Pro', monospace; font-size: .72rem;
+  text-transform: uppercase; letter-spacing: .07em;
+  background: var(--cream); border-bottom: 2px solid var(--border);
+  color: var(--faded); position: sticky; top: 0; z-index: 2;
+}
+.marker-table td {
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.marker-table tr:hover td { background: var(--paper); }
+.marker-table tr.editing td { background: rgba(200,151,58,.08); }
+
+.end-words {
+  font-family: 'Libre Baskerville', serif; font-size: .85rem;
+  color: var(--ink); max-width: 400px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.method-badge {
+  font-family: 'Source Code Pro', monospace; font-size: .72rem;
+  padding: 2px 6px; border-radius: 2px; background: var(--cream);
+  color: var(--faded);
+}
+
+.edit-panel {
+  display: none; margin-top: 8px;
+}
+.edit-panel.active { display: block; }
+.edit-panel input[type=text] {
+  width: 100%; padding: 8px 10px; font-size: .88rem;
+  font-family: 'Source Code Pro', monospace;
+  border: 1px solid var(--border); border-radius: 2px;
+  background: var(--paper); color: var(--ink);
+}
+.edit-panel input:focus { outline: none; border-color: var(--gold); background: #fff; }
+
+.edit-candidates {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+  font-family: 'Source Code Pro', monospace; font-size: .85rem;
+}
+.edit-candidate {
+  padding: 4px 10px; border: 2px solid var(--border); border-radius: 3px;
+  cursor: pointer; transition: all .12s; background: #fff;
+  user-select: none;
+}
+.edit-candidate:hover { border-color: var(--gold); background: var(--cream); }
+.edit-candidate .digit { color: var(--rust); font-weight: 700; margin-right: 3px; }
+
+.edit-hint {
+  font-family: 'Source Code Pro', monospace; font-size: .72rem;
+  color: var(--faded); margin-top: 4px; min-height: 1em;
+}
+.edit-hint.matched { color: var(--green); }
+.edit-hint.no-match { color: var(--red); }
+
+.btn { display: inline-block; padding: 8px 18px;
+  font-family: 'Source Code Pro', monospace; font-size: .82rem; font-weight: 600;
+  border: 2px solid currentColor; border-radius: 2px;
+  cursor: pointer; text-decoration: none; transition: all .15s; }
+.btn-sm { padding: 4px 10px; font-size: .75rem; }
+
+#alert-box { display: none; }
+{% endblock %}
+
+{% block content %}
+<div class="markers-header">
+  <h1 style="font-size:1.3rem;">{{ project.title }} — Markers</h1>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <button class="btn btn-secondary btn-sm" id="btn-export">Export Pages JSON</button>
+    <a href="/project/{{ project.slug }}" class="btn btn-secondary btn-sm">Back to Walk</a>
+  </div>
+</div>
+
+<div style="font-family:'Source Code Pro',monospace; font-size:.78rem; color:var(--faded); margin-bottom:16px;">
+  Data: <code>data/{{ project.slug }}.json</code> &nbsp;|&nbsp;
+  Text: <code>{{ project.text_path }}</code>
+</div>
+
+<div id="alert-box" class="alert"></div>
+
+<div class="card">
+  <table class="marker-table">
+    <thead>
+      <tr>
+        <th style="width:60px;">Page</th>
+        <th>Ends with</th>
+        <th style="width:70px;">Chars</th>
+        <th style="width:80px;">Method</th>
+        <th style="width:60px;"></th>
+      </tr>
+    </thead>
+    <tbody id="markers-body">
+      <tr><td colspan="5" style="text-align:center; color:var(--faded); padding:24px;">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SLUG = '{{ project.slug }}';
+let editingPage = null;
+let editCandidates = [];
+let editTimer = null;
+
+const $markersBody = document.getElementById('markers-body');
+const $alertBox = document.getElementById('alert-box');
+
+function showAlert(msg, type) {
+  $alertBox.className = 'alert alert-' + type;
+  $alertBox.textContent = msg;
+  $alertBox.style.display = 'block';
+  setTimeout(() => { $alertBox.style.display = 'none'; }, 4000);
+}
+
+async function api(url, opts) {
+  return (await fetch(url, opts)).json();
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function escAttr(s) {
+  return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function loadMarkers() {
+  const markers = await api(`/api/${SLUG}/markers`);
+
+  if (!markers.length) {
+    $markersBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--faded); padding:24px;">No pages mapped yet.</td></tr>';
+    return;
+  }
+
+  let html = '';
+  for (const m of markers) {
+    html += `<tr id="row-${m.page}" data-page="${m.page}">`;
+    html += `<td style="font-family:'Source Code Pro',monospace; font-weight:700; color:var(--rust);">${m.page}</td>`;
+    html += `<td><span class="end-words" id="endwords-${m.page}">${escHtml(m.end_words)}</span>`;
+    html += `<div class="edit-panel" id="edit-${m.page}">`;
+    html += `<input type="text" id="editinput-${m.page}" placeholder="type to search..." autocomplete="off">`;
+    html += `<div class="edit-hint" id="edithint-${m.page}"></div>`;
+    html += `<div class="edit-candidates" id="editcands-${m.page}"></div>`;
+    html += `</div></td>`;
+    html += `<td style="font-family:monospace; color:var(--faded);">${m.chars}</td>`;
+    html += `<td><span class="method-badge">${m.method}</span></td>`;
+    html += `<td><button class="btn btn-secondary btn-sm" onclick="toggleEdit(${m.page})">Edit</button></td>`;
+    html += `</tr>`;
+  }
+  $markersBody.innerHTML = html;
+
+  // Wire up edit inputs
+  for (const m of markers) {
+    const input = document.getElementById(`editinput-${m.page}`);
+    input.addEventListener('input', () => doEditSearch(m.page));
+    input.addEventListener('keydown', (e) => handleEditKeydown(e, m.page));
+  }
+}
+
+function toggleEdit(page) {
+  // Close any other open edit
+  if (editingPage !== null && editingPage !== page) {
+    const oldPanel = document.getElementById(`edit-${editingPage}`);
+    const oldRow = document.getElementById(`row-${editingPage}`);
+    if (oldPanel) oldPanel.classList.remove('active');
+    if (oldRow) oldRow.classList.remove('editing');
+  }
+
+  const panel = document.getElementById(`edit-${page}`);
+  const row = document.getElementById(`row-${page}`);
+  const input = document.getElementById(`editinput-${page}`);
+
+  if (editingPage === page) {
+    // Toggle off
+    panel.classList.remove('active');
+    row.classList.remove('editing');
+    editingPage = null;
+    editCandidates = [];
+  } else {
+    // Open
+    panel.classList.add('active');
+    row.classList.add('editing');
+    editingPage = page;
+    editCandidates = [];
+    input.value = '';
+    input.focus();
+    document.getElementById(`edithint-${page}`).textContent = '';
+    document.getElementById(`editcands-${page}`).innerHTML = '';
+  }
+}
+
+function doEditSearch(page) {
+  const input = document.getElementById(`editinput-${page}`);
+  const q = input.value.trim();
+  const $hint = document.getElementById(`edithint-${page}`);
+  const $cands = document.getElementById(`editcands-${page}`);
+
+  if (editTimer) clearTimeout(editTimer);
+
+  if (q.length < 2) {
+    editCandidates = [];
+    $hint.textContent = '';
+    $hint.className = 'edit-hint';
+    $cands.innerHTML = '';
+    return;
+  }
+
+  editTimer = setTimeout(async () => {
+    const data = await api(`/api/${SLUG}/candidates/${page}?q=${encodeURIComponent(q)}`);
+
+    if (data.matched && data.candidates.length > 0) {
+      editCandidates = data.candidates;
+      $hint.textContent = 'Pick the last word on this page';
+      $hint.className = 'edit-hint matched';
+
+      let html = '';
+      for (let i = 0; i < editCandidates.length; i++) {
+        const c = editCandidates[i];
+        html += `<span class="edit-candidate" data-idx="${i}" data-pos="${c.pos}" data-word="${escAttr(c.word)}">`;
+        html += `<span class="digit">${i}</span>${escHtml(c.word)}</span>`;
+      }
+      $cands.innerHTML = html;
+      $cands.querySelectorAll('.edit-candidate').forEach(el => {
+        el.addEventListener('click', () => {
+          const idx = parseInt(el.dataset.idx);
+          doEditPick(page, editCandidates[idx].pos, editCandidates[idx].word);
+        });
+      });
+    } else {
+      editCandidates = [];
+      $hint.textContent = 'No match \u2014 keep typing';
+      $hint.className = 'edit-hint no-match';
+      $cands.innerHTML = '';
+    }
+  }, 150);
+}
+
+function handleEditKeydown(e, page) {
+  if (e.key >= '0' && e.key <= '9' && editCandidates.length > 0) {
+    e.preventDefault();
+    const digit = parseInt(e.key);
+    if (digit < editCandidates.length) {
+      doEditPick(page, editCandidates[digit].pos, editCandidates[digit].word);
+    }
+    return;
+  }
+  if (e.key === 'Escape') {
+    toggleEdit(page);
+  }
+}
+
+async function doEditPick(page, pos, word) {
+  const data = await api(`/api/${SLUG}/edit/${page}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({pos: pos, word: word}),
+  });
+  if (data.error) {
+    showAlert(data.error, 'error');
+    return;
+  }
+  showAlert(`Page ${page} updated`, 'success');
+  editingPage = null;
+  editCandidates = [];
+  loadMarkers();
+}
+
+document.getElementById('btn-export').addEventListener('click', async () => {
+  const data = await api(`/api/${SLUG}/export`);
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = SLUG + '-pages.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+loadMarkers();
+</script>
+{% endblock %}

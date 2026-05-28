@@ -1,0 +1,471 @@
+{% extends "base.html" %}
+{% block title %}PageWalker - {{ project.title }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="sep">/</span>
+<a href="/project/{{ project.slug }}">{{ project.title }}</a>
+{% endblock %}
+
+{% block extra_css %}
+.progress-bar {
+  width: 100%; height: 8px; background: var(--cream);
+  border: 1px solid var(--border); border-radius: 2px;
+  margin: 12px 0;
+}
+.progress-fill {
+  height: 100%; background: var(--rust); border-radius: 1px;
+  transition: width .3s;
+}
+
+.walk-header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 4px;
+}
+.walk-stats {
+  font-family: 'Source Code Pro', monospace; font-size: .82rem; color: var(--faded);
+}
+
+.page-label {
+  font-size: 1.3rem; font-weight: 700; color: var(--ink);
+}
+
+.search-row {
+  margin-bottom: 12px;
+}
+.search-row input[type=text] {
+  width: 100%; font-size: 1rem; padding: 10px 12px;
+}
+.search-hint {
+  font-family: 'Source Code Pro', monospace; font-size: .78rem;
+  color: var(--faded); margin-bottom: 8px;
+  min-height: 1.2em;
+}
+.search-hint.matched { color: var(--green); }
+.search-hint.no-match { color: var(--red); }
+
+.candidates {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;
+  font-family: 'Source Code Pro', monospace; font-size: .92rem;
+  min-height: 36px;
+}
+.candidate {
+  padding: 6px 12px; border: 2px solid var(--border); border-radius: 3px;
+  cursor: pointer; transition: all .12s; background: #fff;
+  user-select: none;
+}
+.candidate:hover { border-color: var(--gold); background: var(--cream); }
+.candidate .digit { color: var(--rust); font-weight: 700; margin-right: 4px; }
+
+.chapter-detect {
+  background: rgba(200,151,58,.1); border: 2px solid var(--gold);
+  border-radius: 3px; padding: 20px; margin: 16px 0;
+}
+.chapter-detect .heading { color: var(--rust); font-weight: 700; margin-bottom: 8px; }
+.chapter-ending {
+  font-family: 'Libre Baskerville', serif; font-style: italic;
+  color: var(--ink); margin: 12px 0; line-height: 1.6;
+}
+
+.keys-help {
+  font-family: 'Source Code Pro', monospace; font-size: .75rem;
+  color: var(--faded); margin-top: 20px; text-align: center;
+}
+.keys-help kbd {
+  display: inline-block; padding: 1px 6px; background: var(--cream);
+  border: 1px solid var(--border); border-radius: 2px;
+  font-family: inherit; font-size: inherit;
+}
+
+.nav-buttons {
+  display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;
+}
+
+.done-message {
+  text-align: center; padding: 40px;
+  font-size: 1.2rem; color: var(--green); font-weight: 700;
+}
+
+.lookup-section { margin-top: 24px; }
+.lookup-row { display: flex; gap: 8px; align-items: center; }
+.lookup-row input { flex: 1; }
+.lookup-result {
+  margin-top: 12px;
+  background: var(--paper); border: 1px solid var(--border);
+  border-left: 4px solid var(--gold);
+  padding: 16px 20px; font-size: .9rem; line-height: 1.8;
+  white-space: pre-wrap; word-break: break-word;
+  font-family: 'Libre Baskerville', serif;
+  max-height: 300px; overflow-y: auto;
+  display: none;
+}
+
+#alert-box { display: none; }
+{% endblock %}
+
+{% block content %}
+<div class="walk-header">
+  <span class="page-label">{{ project.title }}</span>
+  <span class="walk-stats" id="stats">
+    Page <span id="stat-page">{{ project.current_page }}</span>
+    of {{ project.last_page }}
+    | <span id="stat-pct">0</span>% mapped
+  </span>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+
+<div id="alert-box" class="alert"></div>
+
+<div class="card" id="walk-card">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+    <span class="page-label">Page <span id="page-num">{{ project.current_page }}</span></span>
+  </div>
+
+  <div id="walk-content">
+    <div class="search-row">
+      <input type="text" id="search-input" placeholder="type words from the page to locate..." autocomplete="off">
+    </div>
+    <div class="search-hint" id="search-hint">Type a few words from near the end of this page</div>
+    <div class="candidates" id="candidates-display"></div>
+  </div>
+
+  <div id="chapter-content" style="display:none;"></div>
+
+  <div class="nav-buttons">
+    <a href="/project/{{ project.slug }}/markers" class="btn btn-secondary btn-sm">Markers</a>
+    <button class="btn btn-secondary btn-sm" id="btn-back">Back <kbd>b</kbd></button>
+  </div>
+
+  <div class="keys-help">
+    type to search | <kbd>0</kbd>-<kbd>9</kbd> pick last word |
+    <kbd>b</kbd> back |
+    <kbd>Enter</kbd> accept chapter
+  </div>
+</div>
+
+<div id="done-card" class="card" style="display:none;">
+  <div class="done-message">Walk complete! All pages mapped.</div>
+  <div style="text-align:center; margin-top:16px; display:flex; justify-content:center; gap:12px;">
+    <a href="/project/{{ project.slug }}/markers" class="btn btn-primary btn-sm">View Markers</a>
+    <button class="btn btn-secondary btn-sm" id="btn-export">Export Pages JSON</button>
+  </div>
+  <div style="text-align:center; margin-top:16px; font-family:'Source Code Pro',monospace; font-size:.78rem; color:var(--faded);">
+    Data: <code id="data-path">data/{{ project.slug }}.json</code>
+  </div>
+</div>
+
+<div class="lookup-section">
+  <div class="card">
+    <div class="card-title">Lookup</div>
+    <div class="lookup-row">
+      <label style="margin:0; white-space:nowrap;">Page #</label>
+      <input type="number" id="lookup-page" min="{{ project.first_page }}" max="{{ project.last_page }}" style="max-width:100px;">
+      <button class="btn btn-secondary btn-sm" id="btn-lookup">Lookup</button>
+      <span style="color:var(--faded); margin:0 8px;">or</span>
+      <label style="margin:0; white-space:nowrap;">Find phrase:</label>
+      <input type="text" id="find-phrase" placeholder="search text...">
+      <button class="btn btn-secondary btn-sm" id="btn-find">Find</button>
+    </div>
+    <div class="lookup-result" id="lookup-result"></div>
+  </div>
+</div>
+
+<div style="margin-top:24px; text-align:right;">
+  <form action="/project/{{ project.slug }}/delete" method="POST"
+        onsubmit="return confirm('Delete this project? This cannot be undone.')">
+    <button type="submit" class="btn btn-danger btn-sm">Delete Project</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SLUG = '{{ project.slug }}';
+const FIRST_PAGE = {{ project.first_page }};
+const LAST_PAGE = {{ project.last_page }};
+
+let currentPage = {{ project.current_page }};
+let chapterMode = false;
+let allCandidates = [];
+let searchTimer = null;
+
+const $pageNum = document.getElementById('page-num');
+const $statPage = document.getElementById('stat-page');
+const $statPct = document.getElementById('stat-pct');
+const $progress = document.getElementById('progress');
+const $walkContent = document.getElementById('walk-content');
+const $chapterContent = document.getElementById('chapter-content');
+const $searchInput = document.getElementById('search-input');
+const $searchHint = document.getElementById('search-hint');
+const $candidatesDisplay = document.getElementById('candidates-display');
+const $alertBox = document.getElementById('alert-box');
+const $walkCard = document.getElementById('walk-card');
+const $doneCard = document.getElementById('done-card');
+const $lookupResult = document.getElementById('lookup-result');
+
+function showAlert(msg, type) {
+  $alertBox.className = 'alert alert-' + type;
+  $alertBox.textContent = msg;
+  $alertBox.style.display = 'block';
+  setTimeout(() => { $alertBox.style.display = 'none'; }, 4000);
+}
+
+async function api(url, opts) {
+  return (await fetch(url, opts)).json();
+}
+
+async function updateStats() {
+  const state = await api(`/api/${SLUG}/state`);
+  $statPage.textContent = state.current_page;
+  $statPct.textContent = state.pct_complete;
+  $progress.style.width = state.pct_complete + '%';
+  currentPage = state.current_page;
+
+  if (state.done) {
+    $walkCard.style.display = 'none';
+    $doneCard.style.display = 'block';
+  } else {
+    $walkCard.style.display = 'block';
+    $doneCard.style.display = 'none';
+  }
+}
+
+function renderCandidates(container) {
+  const $el = container || $candidatesDisplay;
+  let html = '';
+  for (let i = 0; i < allCandidates.length; i++) {
+    const c = allCandidates[i];
+    html += `<span class="candidate" data-idx="${i}" data-pos="${c.pos}" data-word="${escAttr(c.word)}">`;
+    html += `<span class="digit">${i}</span>${escHtml(c.word)}</span>`;
+  }
+  $el.innerHTML = html;
+  $el.querySelectorAll('.candidate').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx);
+      pickCandidate(allCandidates[idx].pos, allCandidates[idx].word);
+    });
+  });
+}
+
+async function loadPage(page) {
+  currentPage = page;
+  $pageNum.textContent = page;
+  $statPage.textContent = page;
+  $searchInput.value = '';
+  chapterMode = false;
+  allCandidates = [];
+  $candidatesDisplay.innerHTML = '';
+
+  if (page > LAST_PAGE) {
+    updateStats();
+    return;
+  }
+
+  // Check for chapter boundary
+  const data = await api(`/api/${SLUG}/candidates/${page}`);
+
+  if (data.type === 'chapter') {
+    chapterMode = true;
+    $walkContent.style.display = 'none';
+    $chapterContent.style.display = 'block';
+    $chapterContent.innerHTML = `
+      <div class="chapter-detect">
+        <div class="heading">Chapter break detected before "${escHtml(data.heading)}"</div>
+        <div class="chapter-ending">Page ends with: "...${escHtml(data.ending_text)}"</div>
+        <button class="btn btn-primary" id="btn-accept-chapter">Accept</button>
+        <span style="color:var(--faded); font-size:.82rem; margin-left:12px;">or search below to override</span>
+      </div>
+      <div class="search-row" style="margin-top:12px;">
+        <input type="text" id="chapter-search-input" placeholder="type words to search instead..." autocomplete="off">
+      </div>
+      <div class="search-hint" id="chapter-search-hint"></div>
+      <div class="candidates" id="chapter-candidates"></div>
+    `;
+    document.getElementById('btn-accept-chapter').addEventListener('click', acceptChapter);
+    const chInput = document.getElementById('chapter-search-input');
+    chInput.addEventListener('input', () => doSearch(chInput, 'chapter-search-hint', 'chapter-candidates'));
+    chInput.addEventListener('keydown', handleSearchKeydown);
+  } else {
+    $walkContent.style.display = 'block';
+    $chapterContent.style.display = 'none';
+    $searchHint.textContent = 'Type a few words from near the end of this page';
+    $searchHint.className = 'search-hint';
+    $searchInput.focus();
+  }
+}
+
+function doSearch(inputEl, hintId, candsId) {
+  const q = inputEl.value.trim();
+  const $hint = document.getElementById(hintId);
+  const $cands = document.getElementById(candsId);
+
+  if (searchTimer) clearTimeout(searchTimer);
+
+  if (q.length < 2) {
+    allCandidates = [];
+    $hint.textContent = 'Type a few words from near the end of this page';
+    $hint.className = 'search-hint';
+    $cands.innerHTML = '';
+    return;
+  }
+
+  searchTimer = setTimeout(async () => {
+    const data = await api(`/api/${SLUG}/candidates/${currentPage}?q=${encodeURIComponent(q)}`);
+
+    if (data.matched && data.candidates.length > 0) {
+      allCandidates = data.candidates;
+      $hint.textContent = 'Match found \u2014 press digit to pick last word';
+      $hint.className = 'search-hint matched';
+      renderCandidates($cands);
+    } else {
+      allCandidates = [];
+      $hint.textContent = 'No match \u2014 keep typing';
+      $hint.className = 'search-hint no-match';
+      $cands.innerHTML = '';
+    }
+  }, 150);
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function escAttr(s) {
+  return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function pickCandidate(pos, word) {
+  const data = await api(`/api/${SLUG}/pick/${currentPage}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({pos: pos, word: word}),
+  });
+  if (data.error) {
+    showAlert(data.error, 'error');
+    return;
+  }
+  showAlert(`Page ${currentPage} \u2192 "${word}"`, 'success');
+  await updateStats();
+  loadPage(currentPage);
+}
+
+async function acceptChapter() {
+  const data = await api(`/api/${SLUG}/accept_chapter/${currentPage}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+  });
+  if (data.error) {
+    showAlert(data.error, 'error');
+    return;
+  }
+  showAlert(`Page ${currentPage} mapped (chapter break)`, 'success');
+  await updateStats();
+  loadPage(currentPage);
+}
+
+async function goBack() {
+  if (currentPage <= FIRST_PAGE) return;
+  const target = currentPage - 1;
+  const data = await api(`/api/${SLUG}/goto/${target}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+  });
+  if (data.error) {
+    showAlert(data.error, 'error');
+    return;
+  }
+  if (data.invalidated > 5 && !confirm(`This will invalidate ${data.invalidated} pages. Continue?`)) {
+    await api(`/api/${SLUG}/goto/${target + data.invalidated}`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+    });
+    await updateStats();
+    return;
+  }
+  showAlert(`Back to page ${target}`, 'info');
+  await updateStats();
+  loadPage(currentPage);
+}
+
+// Digit keys pick candidates even while typing in search box
+function handleSearchKeydown(e) {
+  if (e.key >= '0' && e.key <= '9' && allCandidates.length > 0) {
+    e.preventDefault();
+    const digit = parseInt(e.key);
+    if (digit < allCandidates.length) {
+      pickCandidate(allCandidates[digit].pos, allCandidates[digit].word);
+    }
+    return;
+  }
+  if (e.key === 'Escape') {
+    e.target.blur();
+  }
+}
+
+$searchInput.addEventListener('input', () => doSearch($searchInput, 'search-hint', 'candidates-display'));
+$searchInput.addEventListener('keydown', handleSearchKeydown);
+
+// Global keys (when no input focused)
+document.addEventListener('keydown', (e) => {
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+
+  if (e.key >= '0' && e.key <= '9' && allCandidates.length > 0) {
+    const digit = parseInt(e.key);
+    if (digit < allCandidates.length) {
+      pickCandidate(allCandidates[digit].pos, allCandidates[digit].word);
+    }
+    return;
+  }
+
+  switch (e.key.toLowerCase()) {
+    case 'b':
+    case 'backspace':
+      e.preventDefault();
+      goBack();
+      break;
+    case 'enter':
+      if (chapterMode) acceptChapter();
+      break;
+  }
+});
+
+document.getElementById('btn-back').addEventListener('click', goBack);
+
+// Lookup
+document.getElementById('btn-lookup').addEventListener('click', async () => {
+  const page = parseInt(document.getElementById('lookup-page').value);
+  if (isNaN(page)) return;
+  const data = await api(`/api/${SLUG}/lookup/${page}`);
+  $lookupResult.textContent = data.error || data.text;
+  $lookupResult.style.display = 'block';
+});
+
+document.getElementById('btn-find').addEventListener('click', async () => {
+  const phrase = document.getElementById('find-phrase').value.trim();
+  if (!phrase) return;
+  const data = await api(`/api/${SLUG}/find`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({phrase: phrase}),
+  });
+  $lookupResult.textContent = data.error || `Found on page ${data.page}`;
+  $lookupResult.style.display = 'block';
+});
+
+// Export
+document.getElementById('btn-export').addEventListener('click', async () => {
+  const data = await api(`/api/${SLUG}/export`);
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = SLUG + '-pages.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// Init
+updateStats();
+loadPage(currentPage);
+</script>
+{% endblock %}

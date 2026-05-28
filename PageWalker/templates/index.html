@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}PageWalker - Projects{% endblock %}
+
+{% block content %}
+<h1 style="font-size:1.5rem; margin-bottom:6px;">PageWalker</h1>
+<p style="color:var(--faded); margin-bottom:28px; font-style:italic;">
+  Sequential exact-boundary book mapper. Type a few words, press a digit.
+</p>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start;">
+
+  <div class="card">
+    <div class="card-title">Your Projects</div>
+    {% if projects %}
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th><th>Pages</th><th>Progress</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in projects %}
+          <tr>
+            <td><a href="/project/{{ p.slug }}" style="color:var(--rust); font-weight:700;">{{ p.title }}</a></td>
+            <td style="font-family:monospace;">{{ p.pages }}</td>
+            <td style="font-family:monospace; color:var(--faded);">{{ p.mapped }}/{{ p.total }} ({{ p.pct }}%)</td>
+            <td>
+              <a href="/project/{{ p.slug }}" class="btn btn-secondary btn-sm">Walk</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="empty-state">No projects yet. Create one.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-title">New Project</div>
+    <form action="/project/new" method="POST" enctype="multipart/form-data">
+      <div class="form-row">
+        <label>Book Title</label>
+        <input type="text" name="title" placeholder="e.g. The Strange Case of Dr Jekyll and Mr Hyde" required>
+      </div>
+      <div class="form-row">
+        <label>Plain-text file (.txt)</label>
+        <input type="file" name="text_file" accept=".txt" required>
+        <small style="color:var(--faded); font-size:.78rem; margin-top:4px; display:block;">
+          Project Gutenberg .txt files work best. UTF-8 encoding.
+        </small>
+      </div>
+      <div class="form-row-inline">
+        <div class="form-row" style="margin:0;">
+          <label>First page</label>
+          <input type="number" name="first_page" value="1" min="1" required>
+        </div>
+        <div class="form-row" style="margin:0;">
+          <label>Last page</label>
+          <input type="number" name="last_page" value="200" min="1" required>
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:14px;">
+        <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" name="chapters_new_page" value="1" checked
+                 style="width:auto; accent-color:var(--rust);">
+          <span>Chapters always start on a new page</span>
+        </label>
+        <small style="color:var(--faded); font-size:.78rem; margin-top:4px; display:block;">
+          Auto-detects chapter boundaries during the walk.
+        </small>
+      </div>
+      <div style="margin-top:16px;">
+        <button type="submit" class="btn btn-primary">Create Project</button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

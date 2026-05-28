@@ -1,0 +1,282 @@
+{
+  "title": "The Strange Case of Dr Jekyll and Mr Hyde",
+  "slug": "the-strange-case-of-dr-jekyll-and-mr-hyde",
+  "text_path": "texts\\the-strange-case-of-dr-jekyll-and-mr-hyde.txt",
+  "first_page": 1,
+  "last_page": 54,
+  "current_page": 55,
+  "chapters_new_page": true,
+  "chapter_offsets": [],
+  "pages": {
+    "1": {
+      "end_offset": 2410,
+      "input": "that they said nothing",
+      "method": "typed"
+    },
+    "2": {
+      "end_offset": 5304,
+      "input": "stumping along eastward at a good",
+      "method": "typed"
+    },
+    "3": {
+      "end_offset": 8379,
+      "input": "the whole business looked",
+      "method": "typed"
+    },
+    "4": {
+      "end_offset": 11237,
+      "input": "a good rule of yours",
+      "method": "typed"
+    },
+    "5": {
+      "end_offset": 13085,
+      "input": "hands on that Richard",
+      "method": "typed"
+    },
+    "6": {
+      "end_offset": 15049,
+      "input": "presentment of a fiend",
+      "method": "typed"
+    },
+    "7": {
+      "end_offset": 17777,
+      "input": "and besieged by questions",
+      "method": "typed"
+    },
+    "8": {
+      "end_offset": 20848,
+      "input": "audible on either side",
+      "method": "typed"
+    },
+    "9": {
+      "end_offset": 23517,
+      "input": "Utterson.",
+      "method": "picked"
+    },
+    "10": {
+      "end_offset": 26371,
+      "input": "the",
+      "method": "picked"
+    },
+    "11": {
+      "end_offset": 29125,
+      "input": "will.",
+      "method": "picked"
+    },
+    "12": {
+      "end_offset": 30989,
+      "input": "so.\u201d",
+      "method": "picked"
+    },
+    "13": {
+      "end_offset": 33387,
+      "input": "promise.\u201d",
+      "method": "picked"
+    },
+    "14": {
+      "end_offset": 35526,
+      "input": "very",
+      "method": "picked"
+    },
+    "15": {
+      "end_offset": 38266,
+      "input": "marvelous",
+      "method": "picked"
+    },
+    "16": {
+      "end_offset": 41142,
+      "input": "colour.",
+      "method": "picked"
+    },
+    "17": {
+      "end_offset": 42544,
+      "input": "beholders.",
+      "method": "picked"
+    },
+    "18": {
+      "end_offset": 44537,
+      "input": "fellow?\u201d",
+      "method": "picked"
+    },
+    "19": {
+      "end_offset": 47147,
+      "input": "hands.",
+      "method": "picked"
+    },
+    "20": {
+      "end_offset": 50036,
+      "input": "scarce",
+      "method": "picked"
+    },
+    "21": {
+      "end_offset": 51473,
+      "input": "veins.",
+      "method": "picked"
+    },
+    "22": {
+      "end_offset": 53624,
+      "input": "appearance.",
+      "method": "picked"
+    },
+    "23": {
+      "end_offset": 56508,
+      "input": "the",
+      "method": "picked"
+    },
+    "24": {
+      "end_offset": 59503,
+      "input": "visits.",
+      "method": "picked"
+    },
+    "25": {
+      "end_offset": 61311,
+      "input": "am",
+      "method": "picked"
+    },
+    "26": {
+      "end_offset": 62475,
+      "input": "silence.",
+      "method": "picked"
+    },
+    "27": {
+      "end_offset": 64278,
+      "input": "the",
+      "method": "picked"
+    },
+    "28": {
+      "end_offset": 66976,
+      "input": "garden.",
+      "method": "picked"
+    },
+    "29": {
+      "end_offset": 69647,
+      "input": "the",
+      "method": "picked"
+    },
+    "30": {
+      "end_offset": 72359,
+      "input": "and",
+      "method": "picked"
+    },
+    "31": {
+      "end_offset": 75016,
+      "input": "thin.\u201d",
+      "method": "picked"
+    },
+    "32": {
+      "end_offset": 77823,
+      "input": "too.\u201d",
+      "method": "picked"
+    },
+    "33": {
+      "end_offset": 80735,
+      "input": "for",
+      "method": "picked"
+    },
+    "34": {
+      "end_offset": 83421,
+      "input": "Poole.",
+      "method": "picked"
+    },
+    "35": {
+      "end_offset": 86046,
+      "input": "explained.",
+      "method": "picked"
+    },
+    "36": {
+      "end_offset": 88270,
+      "input": "leave",
+      "method": "picked"
+    },
+    "37": {
+      "end_offset": 91295,
+      "input": "neatly",
+      "method": "picked"
+    },
+    "38": {
+      "end_offset": 94212,
+      "input": "pulse.",
+      "method": "picked"
+    },
+    "39": {
+      "end_offset": 96903,
+      "input": "sheet.",
+      "method": "picked"
+    },
+    "40": {
+      "end_offset": 99623,
+      "input": "injected",
+      "method": "picked"
+    },
+    "41": {
+      "end_offset": 101066,
+      "input": "LANYON.",
+      "method": "picked"
+    },
+    "42": {
+      "end_offset": 103218,
+      "input": "have",
+      "method": "picked"
+    },
+    "43": {
+      "end_offset": 106273,
+      "input": "shook",
+      "method": "picked"
+    },
+    "44": {
+      "end_offset": 109198,
+      "input": "And",
+      "method": "picked"
+    },
+    "45": {
+      "end_offset": 112089,
+      "input": "cup,",
+      "method": "picked"
+    },
+    "46": {
+      "end_offset": 115030,
+      "input": "mean",
+      "method": "picked"
+    },
+    "47": {
+      "end_offset": 118021,
+      "input": "an",
+      "method": "picked"
+    },
+    "48": {
+      "end_offset": 121047,
+      "input": "all",
+      "method": "picked"
+    },
+    "49": {
+      "end_offset": 124165,
+      "input": "I",
+      "method": "picked"
+    },
+    "50": {
+      "end_offset": 127143,
+      "input": "temptation.",
+      "method": "picked"
+    },
+    "51": {
+      "end_offset": 130136,
+      "input": "devilish",
+      "method": "picked"
+    },
+    "52": {
+      "end_offset": 133062,
+      "input": "indescribable",
+      "method": "picked"
+    },
+    "53": {
+      "end_offset": 136122,
+      "input": "himself",
+      "method": "picked"
+    },
+    "54": {
+      "end_offset": 138787,
+      "input": "end.",
+      "method": "picked"
+    }
+  }
+}
