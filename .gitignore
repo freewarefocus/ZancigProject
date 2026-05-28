@@ -1,8 +1,10 @@
-# Dot folders (internal/not ready for publishing)
-.planning/
-.ThumbyColor/
-.ZCID Hardware Project/
-.docs/
+# All dot-directories and dot-files
+.*
+!.gitignore
+
+# Temp files
+*.temp
+*.tmp
 
 # Internal scripts
 *.bat
@@ -10,12 +12,10 @@
 
 # Claude-related
 CLAUDE.md
-.claude/
 
 # Python
 __pycache__/
 *.pyc
 
 # OS
-.DS_Store
 Thumbs.db
