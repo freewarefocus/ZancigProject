@@ -10,6 +10,8 @@ Zancig is a concealed electronic assistant for solo performers. You palm it, wea
 
 Use cases include book tests, knight's tour demonstrations, day-of-the-week calculations, number memorization reveals, and any effect where the performer needs hidden access to computed or stored information.
 
+Everything is configurable per performer -- haptic timing and encoding, button assignments, left- or right-handed input, tilt sensitivity, confirm gestures. Commercial mentalism devices might let you pick a hand. Zancig lets you tune every parameter until the device feels like an extension of your body.
+
 The audience sees nothing. No phone. No earpiece. No assistant.
 
 ---
@@ -30,7 +32,7 @@ Haptic output works eyes-free and fully concealed. Screen output requires a brie
 
 ### Watchy V3 (active)
 
-The [Watchy](https://watchy.sqfmi.com/) by SQFMI is an open-source e-paper smartwatch based on the ESP32-S3. Its watch form factor provides natural cover for performance use.
+The [Watchy](https://watchy.sqfmi.com/) by SQFMI is an open-source e-paper smartwatch based on the ESP32-S3. Its watch form factor and palmability provides natural cover for performance use.
 
 - MCU: ESP32-S3
 - Display: 200x200 e-paper
@@ -59,6 +61,8 @@ The [Thumby Color](https://thumby.us/) by TinyCircuits is a miniature handheld g
 Routines are the performance effects Zancig enables -- book tests, day-of-the-week calculations, knight's tour demonstrations, and so on. Each routine is a plain MicroPython `.py` file with a `run()` function. The launcher discovers routines automatically and presents them in a menu.
 
 The design goal is **write once, use on any Zancig device.** A routine written for Watchy should run unchanged on Thumby Color or any future platform, as long as it only uses capabilities both devices share. This isn't always possible -- a routine that uses `show_large()` (display text on screen) won't work on a hypothetical device without a screen -- but it is the ideal every routine aims for.
+
+Routines don't hardcode timing, buttons, or encoding. Those live in a separate config file (`zri_cfg.py`) that the performer edits to match their preferences -- which hand they use, how fast the haptic pulses feel comfortable, which button confirms a selection. A routine author writes the logic; the performer tunes the feel.
 
 Routines live under `src/routines/` on each device. Contributions are welcome.
 
@@ -107,6 +111,8 @@ Routines are plain `.py` files with a `run()` function. The launcher (`main.py`)
 - **Sound:** `tone()`, `melody()`, `volume()` (device-dependent, check `CAPS['sound']`)
 - **Config:** `load_config()`, `save_config()`
 - **Utility:** `battery_pct()`, `sleep_ms()`
+
+ZRI reads its configuration from `zri_cfg.py` -- a plain Python dict that performers edit directly. This is where haptic pulse durations, button mappings, tilt axis and sensitivity, handedness, and encoding parameters are set. No special tools needed; just edit the file and reboot.
 
 The full ZRI specification is in `.planning/Zancig_Routine_Interface.md`.
 
