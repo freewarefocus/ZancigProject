@@ -18,7 +18,7 @@ The audience sees nothing. No phone. No earpiece. No assistant.
 
 Every Zancig routine follows the same covert I/O loop:
 
-1. **Secret input** -- The performer enters information using button presses or accelerometer tilt (a jog-dial gesture) while the device is hidden in a pocket or under a sleeve.
+1. **Secret input** -- The performer enters information using button presses or accelerometer tilt (a jog-dial gesture) while the device is palmed, hidden in a pocket or under a sleeve.
 2. **Computation** -- The routine processes the input (a lookup, a calculation, a mapping).
 3. **Covert output** -- The result comes back as a haptic vibration pattern (e.g., short-short-long = digit 7) or as text on a screen the performer peeks at during a natural gesture.
 
@@ -54,9 +54,19 @@ The [Thumby Color](https://thumby.us/) by TinyCircuits is a miniature handheld g
 
 ---
 
+## Routines
+
+Routines are the performance effects Zancig enables -- book tests, day-of-the-week calculations, knight's tour demonstrations, and so on. Each routine is a plain MicroPython `.py` file with a `run()` function. The launcher discovers routines automatically and presents them in a menu.
+
+The design goal is **write once, use on any Zancig device.** A routine written for Watchy should run unchanged on Thumby Color or any future platform, as long as it only uses capabilities both devices share. This isn't always possible -- a routine that uses `show_large()` (display text on screen) won't work on a hypothetical device without a screen -- but it is the ideal every routine aims for.
+
+Routines live under `src/routines/` on each device. Contributions are welcome.
+
+---
+
 ## ZRI (Zancig Routine Interface)
 
-Routines never talk to hardware directly. Instead, they import `zri` -- a device-agnostic API layer that handles all input, output, and device differences. Each supported device has its own `zri.py` implementation. Routines import only `zri` and run unchanged on any device that meets their capability requirements.
+Routines achieve device portability by never talking to hardware directly. Instead, they import `zri` -- a device-agnostic API layer that handles all input, output, and device differences. Each supported device has its own `zri.py` implementation. Routines import only `zri` and run unchanged on any device that meets their capability requirements.
 
 A `CAPS` dictionary lets routines check what the current device supports:
 
