@@ -123,6 +123,8 @@ The full ZRI specification is in [`docs/Zancig_Routine_Interface.md`](docs/Zanci
 ```
 Zancig/
 ├── README.md
+├── docs/                        # Project-wide specs and documentation
+│   └── Zancig_Routine_Interface.md
 ├── Watchy/
 │   ├── docs/                    # Watchy-specific documentation
 │   └── src/                     # Mirrors the watch filesystem
