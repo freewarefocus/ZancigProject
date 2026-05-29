@@ -1,155 +1,183 @@
 # Project Zancig
 
-Project Zancig is an open-source framework for covert haptic signaling, intended for use in two-person mentalism and memory performance acts. It provides a standardized approach to encoding and transmitting information between a confederate and a performer using small, wearable consumer hardware.
-
-The project is named after Julius and Agnes Zancig (1857–1929 and 1863–1916), Danish-American mentalists whose celebrated two-person telepathy act remains a foundational reference in the history of covert performance communication.
+A covert performance assistant for mentalists and magicians.
 
 ---
 
-## What This Project Is
+## What This Is
 
-Zancig defines:
+Zancig is a concealed electronic assistant for solo performers. You palm it, wear it, or pocket it. During a performance, it accepts secret input (button presses, tilts, slides) and feeds information back to you covertly through haptic vibration patterns and discreet screen peeks.
 
-- A **haptic vocabulary** — a shared encoding standard for conveying numbers, signals, and structured data through vibration patterns
-- An **input abstraction layer** — a set of named input schemes (Clock, Bump5, DirectMap, and others) that map physical button inputs on a given device to the values a routine requires
-- A **routine format** — a specification for writing portable, platform-annotated performance routines in MicroPython, with declared capability requirements and input scheme preferences
-- **Platform implementations** — device-specific firmware that implements the above on supported hardware
+Use cases include book tests, knight's tour demonstrations, day-of-the-week calculations, number memorization reveals, and any effect where the performer needs hidden access to computed or stored information.
 
-There is no single "Zancig core" codebase. The standard is the core. Implementations exist per hardware platform and are expected to diverge at the firmware level while remaining interoperable at the routine and vocabulary level.
+The audience sees nothing. No phone. No earpiece. No assistant.
+
+---
+
+## How It Works
+
+Every Zancig routine follows the same covert I/O loop:
+
+1. **Secret input** -- The performer enters information using button presses or accelerometer tilt (a jog-dial gesture) while the device is hidden in a pocket or under a sleeve.
+2. **Computation** -- The routine processes the input (a lookup, a calculation, a mapping).
+3. **Covert output** -- The result comes back as a haptic vibration pattern (e.g., short-short-long = digit 7) or as text on a screen the performer peeks at during a natural gesture.
+
+Haptic output works eyes-free and fully concealed. Screen output requires a brief glance but can convey more information. The performer chooses which mode fits the moment.
 
 ---
 
 ## Supported Hardware
 
-### Watchy (current)
+### Watchy V3 (active)
 
-The [Watchy](https://watchy.sqfmi.com/) by SQFMI is the first supported platform. It is an open-source e-paper smartwatch based on the ESP32, with four physical buttons and a haptic motor. Its watch form factor provides a natural, unobtrusive cover for performance use.
+The [Watchy](https://watchy.sqfmi.com/) by SQFMI is an open-source e-paper smartwatch based on the ESP32-S3. Its watch form factor provides natural cover for performance use.
 
-**Only Watchy V3 is officially supported.** Earlier hardware revisions differ in pin assignments and peripheral availability and have not been tested.
-
-- MCU: ESP32
-- Input: 4 physical buttons (configurable via input layout profiles)
-- Haptic: ERM motor (vibration motor, driver-dependent)
-- Runtime language: MicroPython
+- MCU: ESP32-S3
+- Display: 200x200 e-paper
+- Input: 4 physical buttons + BMA423 accelerometer (tilt jog dial)
+- Haptic: ERM vibration motor via DRV2605L driver
+- Runtime: MicroPython
 - Status: **Active**
 
-Hardware pin assignments, register maps, and peripheral details used in the Zancig Watchy implementation were sourced from [Watchy_GSR](https://github.com/GuruSR/Watchy_GSR) by GuruSR, a comprehensive open-source Watchy firmware with extensive V3 hardware documentation. That project was instrumental in establishing accurate V3 specifications for the MicroPython port.
+Hardware pin assignments and peripheral details used in the Zancig Watchy implementation were sourced from [Watchy_GSR](https://github.com/GuruSR/Watchy_GSR) by GuruSR, whose comprehensive V3 hardware documentation was instrumental in establishing accurate specifications for the MicroPython port.
 
-### Thumby Color (coming soon)
+### Thumby Color (planned)
 
-The [Thumby Color](https://thumby.us/) by TinyCircuits is a miniature handheld game device based on the RP2350. Work is underway to bring Zancig to this platform.
+The [Thumby Color](https://thumby.us/) by TinyCircuits is a miniature handheld game device based on the RP2350. Its tiny form factor makes it concealable in a palm.
 
 - MCU: RP2350
+- Display: Color LCD
 - Input: D-pad + A/B buttons
-- Haptic: To be confirmed
-- Runtime language: MicroPython
+- Haptic: ERM vibration motor
+- Runtime: MicroPython
 - Status: **Planned**
+
+---
+
+## ZRI (Zancig Routine Interface)
+
+Routines never talk to hardware directly. Instead, they import `zri` -- a device-agnostic API layer that handles all input, output, and device differences. Each supported device has its own `zri.py` implementation. Routines import only `zri` and run unchanged on any device that meets their capability requirements.
+
+A `CAPS` dictionary lets routines check what the current device supports:
+
+```python
+import zri
+
+zri.init()
+if zri.CAPS.get('sound'):
+    zri.tone(440, 200)
+```
+
+### Minimal routine example
+
+```python
+"""A simple routine: enter a digit, buzz it back."""
+import zri
+
+def run():
+    zri.init()
+    zri.haptic_ready()
+
+    digit = zri.get_digit()
+    zri.haptic_digit(digit)
+    zri.show_large(str(digit))
+
+    zri.wait_press()
+    zri.done()
+```
+
+Routines are plain `.py` files with a `run()` function. The launcher (`main.py`) discovers and presents them in a menu.
+
+### Key API areas
+
+- **Lifecycle:** `init()`, `stealth()`, `done()`
+- **Input:** `get_digit()`, `get_confirm()`, `wait_press()`
+- **Haptic:** `haptic()`, `haptic_digit()`, `haptic_ready()`, `haptic_end()`, `haptic_nack()`
+- **Display:** `show()`, `show_large()`, `show_page()`, `clear()`
+- **Sound:** `tone()`, `melody()`, `volume()` (device-dependent, check `CAPS['sound']`)
+- **Config:** `load_config()`, `save_config()`
+- **Utility:** `battery_pct()`, `sleep_ms()`
+
+The full ZRI specification is in `.planning/Zancig_Routine_Interface.md`.
 
 ---
 
 ## Repository Structure
 
-The repository is organized with each supported platform as a top-level directory. Routines live under their respective platform for now, as cross-platform compatibility is still being established. A `shared-routines/` directory will be added at the top level once portability patterns are better understood.
-
 ```
-ZancigProject/
-├── spec/                        # The Zancig Standard: haptic vocabulary, input schemes, routine format
-├── docs/                        # Project documentation
-├── Watchy/                      # Watchy V3 platform
-│   ├── README.md                # Watchy-specific setup: flashing MicroPython, copying src/ to device
-│   └── src/                     # Source files — mirrors the watch filesystem exactly
-│       ├── main.py
-│       ├── zancig.py
-│       ├── epd_driver.py
-│       └── routines/            # Routine source files
-│           ├── calendar_prodigy.py
-│           ├── knights_tour.py
-│           └── ...
-└── ThumbyColor/                 # Thumby Color platform (coming soon)
+Zancig/
+├── README.md
+├── Watchy/
+│   ├── docs/                    # Watchy-specific documentation
+│   └── src/                     # Mirrors the watch filesystem
+│       ├── main.py              # Launcher: menu, routine discovery, sleep
+│       ├── zri.py               # ZRI implementation for Watchy V3
+│       ├── zri_cfg.py           # ZRI config (haptic timing, tilt thresholds)
+│       ├── zancig.py            # Low-level hardware driver
+│       ├── zancig_cfg.py        # Hardware pin assignments, I2C addresses
+│       ├── epd_driver.py        # E-paper display driver
+│       ├── bma423.py            # Accelerometer driver
+│       └── routines/            # Performance routines
+│           ├── zri_test.py      # ZRI API exerciser
+│           ├── tilt_trainer.py  # Accelerometer tilt input trainer
+│           └── btn_check.py     # Button diagnostic
+└── PageWalker/                  # Web tool for book test cribs
     ├── README.md
-    └── src/                     # Source files — mirrors the device filesystem
-        ├── main.py
-        └── routines/
+    ├── app.py                   # Flask server
+    ├── walker.py                # Core page-mapping logic
+    ├── templates/               # Web UI
+    ├── texts/                   # Uploaded book texts
+    └── data/                    # Project JSON files
 ```
 
-The `src/` directory under each platform mirrors the device filesystem directly. To deploy, flash MicroPython to the device and copy the contents of `src/` across. No structural translation is required between the repository and the device.
-
-A `shared-routines/` directory will be introduced at the top level once sufficient experience has been gained to determine which routines can be reliably ported between platforms without modification.
+The `src/` directory under `Watchy/` mirrors the device filesystem directly. To deploy, flash MicroPython to the device and copy the contents of `src/` to the watch. No build step or structural translation required.
 
 ---
 
-## The Haptic Vocabulary
+## PageWalker
 
-Zancig uses a configurable haptic encoding system rather than a single fixed vocabulary. Numbers are communicated as combinations of short and long pulses, where a configurable base number acts as the dividing line:
+PageWalker is a companion web tool for building book test cribs. It maps a plain-text digital book (e.g., from Project Gutenberg) to physical page numbers by letting you walk through the book page-by-page with the physical copy in hand, marking where each page ends.
 
-- Numbers below base: short pulses only (`*` = 1, `**` = 2, and so on)
-- Base number: one long pulse (`-`)
-- Numbers above base: long pulse followed by shorts (`-*` = base+1, `-**` = base+2, and so on)
+The output is a JSON file mapping every page number to its text, which you can then use to build crib sheets for performance.
 
-All timing values — pulse duration, gap between pulses, and the feel of the jog input — are configurable per performer. The number range itself is also configurable; a routine that only needs values 1–6 can be tuned differently from one that needs 0–9.
-
-**Default configuration:** base 5, range 1–9. This is a reasonable general-purpose starting point and what most documentation examples assume. A performer who trains on this default can work with any routine that uses standard range without reconfiguration.
-
-The design intent is that a performer trains deeply on one encoding configuration rather than switching between fixed schemes. Configuring the system to match a specific routine's data range — and then training on that configuration — produces faster and more reliable recognition than a universal vocabulary would.
-
-Timing and encoding parameters are set in the per-platform configuration file (e.g. `src/zancig_cfg.py` on Watchy). The full parameter reference is in [`spec/haptic-vocabulary.md`](spec/haptic-vocabulary.md).
+See [`PageWalker/README.md`](PageWalker/README.md) for setup and usage.
 
 ---
 
-## Input Schemes
+## Design Philosophy
 
-Zancig separates *what a routine needs* from *how the performer inputs it*. Each routine declares a preferred input scheme. The performer selects a layout profile that maps their device's physical inputs to that scheme.
-
-Input schemes vary by device capability and routine requirements. Examples include clock-face selection methods for numeric ranges and accelerometer-based tilt input where hardware supports it. All layouts support left- and right-hand configuration.
-
-Input scheme definitions are in [`spec/input-schemes.md`](spec/input-schemes.md).
-
----
-
-## Routines
-
-Routines are the performance effects the system enables. Each routine is defined in a platform-neutral format that specifies:
-
-- The effect and its performance context
-- Required device capabilities (haptic, buttons, optional sensors)
-- Preferred input scheme
-- The encoding logic
-
-Routines are located under the `src/routines/` directory of each platform. Contributions are welcome. See [Contributing](#contributing).
+- **Stealth-first.** The device is dark and silent by default. Display and sound are opt-in per routine. Haptic is the primary output channel.
+- **Performance resilience.** A failure during a show is catastrophic, not inconvenient. Code paths are kept simple. No databases, no network dependencies, no complex state machines.
+- **Performer-modifiable.** Routines are plain `.py` files. Config is plain `.py` dicts. Timing values, haptic patterns, and thresholds are all tunable without recompiling or reflashing firmware.
+- **No unnecessary abstraction.** Module-level functions, not classes. Fire-and-forget defaults, optional parameters for control. Three similar lines of code are better than a premature abstraction.
+- **Device-agnostic routines.** All hardware interaction goes through ZRI. A routine written for Watchy should run on Thumby Color without changes, as long as it only uses capabilities both devices share.
 
 ---
 
 ## Getting Started
 
-### Watchy
+### Watchy V3
 
-See [`Watchy/README.md`](Watchy/README.md) for hardware requirements, flashing instructions, and configuration.
-
-Prerequisites:
-
-- Watchy V3 hardware
-- Python 3.x with `esptool` installed
-- MicroPython firmware for ESP32 (link in platform README)
+1. **Flash MicroPython** to your Watchy V3 using `esptool`. You need a MicroPython build for ESP32-S3 with SPIRAM.
+2. **Copy `Watchy/src/`** to the watch filesystem using `mpremote`, Thonny, or any MicroPython file transfer tool.
+3. **Boot the watch.** `main.py` runs automatically, presenting a menu of available routines.
+4. **Navigate:** top-right button (TR) cycles through menu items and launches the selected routine. Bottom-left (BL) long-press enters MicroPython mode for development.
 
 ---
 
 ## Contributing
 
-Contributions are welcome, including new routines, platform ports, input scheme proposals, and corrections to the specification.
+Contributions are welcome -- new routines, platform ports, documentation improvements, and bug fixes.
 
-Before submitting a routine, review [`spec/routine-format.md`](spec/routine-format.md) to ensure it follows the standard declaration format, and place it under the appropriate platform directory. Routines that duplicate the core functionality of actively sold commercial products will not be accepted into the main routine library at this time.
+Routines that duplicate the core functionality of actively sold commercial mentalism products will not be accepted into the main library at this time.
 
 Please open an issue before beginning significant new work, to avoid duplication of effort.
 
 ---
 
-## Philosophy
+## Attribution
 
-Zancig is designed to be open and performer-modifiable. Routines are plain files. Encoding tables are readable. Nothing requires a proprietary update tool or a closed ecosystem.
-
-The project does not attempt to be a commercial product. It is a technical framework for performers who want to understand and control their own tools.
-
-The standard language is MicroPython wherever the target hardware supports it. Where it does not, the haptic vocabulary and routine format specification remain the reference, and platform authors are expected to document deviations clearly.
+Named after Julius and Agnes Zancig, Danish-American mentalists whose celebrated two-person telepathy act (late 1800s -- early 1900s) remains a foundational reference in the history of covert performance communication. Their methods, their discipline, and their respect for the audience remain the spirit behind this project.
 
 ---
 
@@ -157,18 +185,12 @@ The standard language is MicroPython wherever the target hardware supports it. W
 
 Project Zancig uses a split license:
 
-**Platform code, HAL, and routines** — licensed under the [GNU Lesser General Public License v3.0](LICENSE-CODE) (LGPL v3). You may use, modify, and distribute this code, including as part of a larger work, provided that modifications to the Zancig code itself are shared back under the same terms.
+**Platform code, HAL, and routines** -- licensed under the [GNU Lesser General Public License v3.0](LICENSE-CODE) (LGPL v3). You may use, modify, and distribute this code, including as part of a larger work, provided that modifications to the Zancig code itself are shared back under the same terms.
 
-**Zancig Standard, specification documents, and documentation** (including this README) — licensed under [Creative Commons Attribution-ShareAlike 4.0 International](LICENSE-DOCS) (CC BY-SA 4.0). You may freely use, adapt, and redistribute these materials provided appropriate credit is given and derivatives are shared under the same license.
+**Specification documents and documentation** (including this README) -- licensed under [Creative Commons Attribution-ShareAlike 4.0 International](LICENSE-DOCS) (CC BY-SA 4.0). You may freely use, adapt, and redistribute these materials provided appropriate credit is given and derivatives are shared under the same license.
 
-Routine files are LGPL v3 as code. The performance description and encoding logic documented in prose within a routine are CC BY-SA 4.0.
+Routine files are LGPL v3 as code. Performance descriptions and encoding logic documented in prose within a routine are CC BY-SA 4.0.
 
 Contributions to the main repository are understood to be submitted under the applicable license for the component being contributed, as described above, unless explicitly stated otherwise.
 
 On-device LGPL compliance for MicroPython platforms is satisfied by retaining the Zancig `.py` source files in editable form on the device, which is the default state of any MicroPython deployment.
-
----
-
-## Attribution
-
-Named after Julius and Agnes Zancig, whose work in the early twentieth century demonstrated the performative power of systematic covert communication. Their methods, their discipline, and their respect for the audience remain the spirit behind this project.
