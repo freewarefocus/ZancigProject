@@ -114,7 +114,7 @@ Routines are plain `.py` files with a `run()` function. The launcher (`main.py`)
 
 ZRI reads its configuration from `zri_cfg.py` -- a plain Python dict that performers edit directly. This is where haptic pulse durations, button mappings, tilt axis and sensitivity, handedness, and encoding parameters are set. No special tools needed; just edit the file and reboot.
 
-The full ZRI specification is in `.planning/Zancig_Routine_Interface.md`.
+The full ZRI specification is in [`docs/Zancig_Routine_Interface.md`](docs/Zancig_Routine_Interface.md).
 
 ---
 
