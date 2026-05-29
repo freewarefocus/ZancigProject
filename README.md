@@ -64,7 +64,7 @@ The design goal is **write once, use on any Zancig device.** A routine written f
 
 Routines don't hardcode timing, buttons, or encoding. Those live in a separate config file (`zri_cfg.py`) that the performer edits to match their preferences -- which hand they use, how fast the haptic pulses feel comfortable, which button confirms a selection. A routine author writes the logic; the performer tunes the feel.
 
-Routines live under `src/routines/` on each device. Contributions are welcome.
+Cross-device routines live in the top-level `routines/` directory and get copied to whichever device you use. Device-specific routines (e.g., a Watchy tilt input trainer that only makes sense on hardware with an accelerometer) live under that device's own `src/routines/` folder. Contributions are welcome.
 
 ---
 
@@ -125,6 +125,7 @@ Zancig/
 ├── README.md
 ├── docs/                        # Project-wide specs and documentation
 │   └── Zancig_Routine_Interface.md
+├── routines/                    # Cross-device performance routines
 ├── Watchy/
 │   ├── docs/                    # Watchy-specific documentation
 │   └── src/                     # Mirrors the watch filesystem
@@ -135,7 +136,7 @@ Zancig/
 │       ├── zancig_cfg.py        # Hardware pin assignments, I2C addresses
 │       ├── epd_driver.py        # E-paper display driver
 │       ├── bma423.py            # Accelerometer driver
-│       └── routines/            # Performance routines
+│       └── routines/            # Watchy-specific routines
 │           ├── zri_test.py      # ZRI API exerciser
 │           ├── tilt_trainer.py  # Accelerometer tilt input trainer
 │           └── btn_check.py     # Button diagnostic
