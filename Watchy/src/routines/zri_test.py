@@ -155,6 +155,11 @@ def run():
     zri.haptic('SLS')
     _pass()
 
+    # -- haptic tick_up / tick_down --
+    _label('haptic UD')
+    zri.haptic('UD')
+    _pass()
+
     # -- haptic_digit --
     _label('haptic_digit 7')
     zri.haptic_digit(7)

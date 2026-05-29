@@ -36,7 +36,8 @@ LONG_MS     = 380
 GAP_MS      = 200
 DIGIT_GAP   = 650
 MOVE_GAP    = 1100
-TICK_MS     = 80
+TICK_UP_MS  = 80
+TICK_DOWN_MS = 120
 
 # -- Button timing -------------------------------------------------------------
 
@@ -122,8 +123,11 @@ def buzz(on_ms, off_ms=0):
     if off_ms:
         time.sleep_ms(off_ms)
 
-def tick():
-    buzz(TICK_MS, GAP_MS)
+def tick_up():
+    buzz(TICK_UP_MS, GAP_MS)
+
+def tick_down():
+    buzz(TICK_DOWN_MS, GAP_MS)
 
 def pulse_short(trailing=True):
     buzz(SHORT_MS, GAP_MS if trailing else 0)
@@ -283,11 +287,11 @@ def read_digit(btn_name='TR', centre=5, lo=1, hi=9):
             if time.ticks_diff(now, last_tick_t) >= TICK_INTERVAL_MS:
                 if delta > TILT_THRESHOLD and current > lo:
                     current -= 1
-                    tick()
+                    tick_down()
                     last_tick_t = now
                 elif delta < -TILT_THRESHOLD and current < hi:
                     current += 1
-                    tick()
+                    tick_up()
                     last_tick_t = now
 
             press = check_button(btn_name)

@@ -6,7 +6,8 @@ config = {
     'device': 'watchy',              # Hardware target
     'short_ms': 120,                 # Short buzz duration (dot)
     'long_ms': 380,                  # Long buzz duration (dash)
-    'tick_ms': 80,                   # Tick pulse duration (tilt counting)
+    'tick_up_ms': 80,                # Tick pulse for increment
+    'tick_down_ms': 120,             # Tick pulse for decrement (longer)
     'gap_ms': 200,                   # Pause between buzzes in a pattern
     'digit_gap_ms': 650,             # Pause between digits
     'move_gap_ms': 1100,             # Pause between tilt moves

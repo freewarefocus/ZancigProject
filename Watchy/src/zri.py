@@ -31,7 +31,8 @@ def init():
             'device': 'watchy',
             'short_ms': zancig.SHORT_MS,
             'long_ms': zancig.LONG_MS,
-            'tick_ms': zancig.TICK_MS,
+            'tick_up_ms': zancig.TICK_UP_MS,
+            'tick_down_ms': zancig.TICK_DOWN_MS,
             'gap_ms': zancig.GAP_MS,
             'digit_gap_ms': zancig.DIGIT_GAP,
             'move_gap_ms': zancig.MOVE_GAP,
@@ -96,8 +97,8 @@ def done(timeout_ms=60_000):
 # -- Haptic Output ------------------------------------------------------------
 
 def haptic(pattern, timings=None):
-    """Play a haptic pattern string. S=short, L=long, T=tick. Auto-gaps.
-    Optional timings dict overrides default durations."""
+    """Play a haptic pattern string. S=short, L=long, U=tick_up, D=tick_down.
+    Auto-gaps. Optional timings dict overrides default durations."""
     if not CAPS.get('haptic'):
         return False
     t = dict(_cfg)
@@ -110,8 +111,10 @@ def haptic(pattern, timings=None):
             zancig.buzz(t['short_ms'], t['gap_ms'] if trailing else 0)
         elif ch == 'L':
             zancig.buzz(t['long_ms'], t['gap_ms'] if trailing else 0)
-        elif ch == 'T':
-            zancig.buzz(t['tick_ms'], t['gap_ms'] if trailing else 0)
+        elif ch == 'U':
+            zancig.buzz(t['tick_up_ms'], t['gap_ms'] if trailing else 0)
+        elif ch == 'D':
+            zancig.buzz(t['tick_down_ms'], t['gap_ms'] if trailing else 0)
     return True
 
 
@@ -409,11 +412,11 @@ def get_digit(lo=1, hi=9, prompt=None, format_fn=None):
         if time.ticks_diff(now, last_tick_t) >= interval:
             if delta > threshold and current > lo:
                 current -= 1
-                zancig.buzz(_cfg['tick_ms'], _cfg['gap_ms'])
+                zancig.buzz(_cfg['tick_down_ms'], _cfg['gap_ms'])
                 last_tick_t = now
             elif delta < -threshold and current < hi:
                 current += 1
-                zancig.buzz(_cfg['tick_ms'], _cfg['gap_ms'])
+                zancig.buzz(_cfg['tick_up_ms'], _cfg['gap_ms'])
                 last_tick_t = now
 
         press = zancig.check_button(confirm_btn)
