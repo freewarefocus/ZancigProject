@@ -174,7 +174,7 @@ See [`PageWalker/README.md`](PageWalker/README.md) for setup and usage.
 
 ### Watchy V3
 
-1. **Flash MicroPython** to your Watchy V3. The easiest method is the [Adafruit WebSerial ESPTool](https://adafruit.github.io/Adafruit_WebSerial_ESPTool/) in Chrome or Edge -- no install required. Erase the flash first, then flash a MicroPython build for ESP32-S3 with SPIRAM.
+1. **Flash MicroPython** to your Watchy V3. Download the [ESP32_GENERIC_S3 firmware](https://micropython.org/download/ESP32_GENERIC_S3/) `.bin` file. The easiest flashing method is the [Adafruit WebSerial ESPTool](https://adafruit.github.io/Adafruit_WebSerial_ESPTool/) in Chrome or Edge -- no install required. Erase the flash first, then flash the `.bin` file.
 2. **Copy `Watchy/src/`** to the watch filesystem using `mpremote`, Thonny, or any MicroPython file transfer tool.
 3. **Boot the watch.** `main.py` runs automatically, presenting a menu of available routines.
 4. **Navigate:** top-right button (TR) cycles through menu items and launches the selected routine. Bottom-left (BL) long-press enters MicroPython mode for development.
