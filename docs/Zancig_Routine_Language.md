@@ -1,6 +1,6 @@
 # Zancig Routine Language (ZRL)
 
-**Working name:** "Magic Python" · **Status:** v0.2 — post-first-routine revision · **Substrate:** MicroPython
+**Working name:** "ZancigPython" · **Status:** v0.2 — post-first-routine revision · **Substrate:** MicroPython
 
 This is the language you write Zancig performance routines in. It is **not a new
 language** — it is a deliberately narrow *subset* of MicroPython. Anything you
