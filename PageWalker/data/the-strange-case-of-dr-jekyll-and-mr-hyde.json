@@ -278,5 +278,499 @@
       "input": "end.",
       "method": "picked"
     }
+  },
+  "crib": {
+    "rule": "first_word",
+    "knobs": {
+      "max_fallbacks": 3
+    },
+    "entries": {
+      "1": {
+        "words": [
+          "The",
+          "Strange",
+          "Case",
+          "Of"
+        ],
+        "override": false
+      },
+      "2": {
+        "words": [
+          "looked",
+          "singularly",
+          "dull",
+          "and"
+        ],
+        "override": false
+      },
+      "3": {
+        "words": [
+          "walk",
+          "and",
+          "the",
+          "other"
+        ],
+        "override": false
+      },
+      "4": {
+        "words": [
+          "apocryphal",
+          "and",
+          "that",
+          "a"
+        ],
+        "override": false
+      },
+      "5": {
+        "words": [
+          "Yes",
+          "I",
+          "think",
+          "it"
+        ],
+        "override": false
+      },
+      "6": {
+        "words": [
+          "SEARCH",
+          "FOR",
+          "MR",
+          "HYDE"
+        ],
+        "override": false
+      },
+      "7": {
+        "words": [
+          "I",
+          "thought",
+          "it",
+          "was"
+        ],
+        "override": false
+      },
+      "8": {
+        "words": [
+          "Six",
+          "o\u2019clock",
+          "struck",
+          "on"
+        ],
+        "override": false
+      },
+      "9": {
+        "words": [
+          "of",
+          "the",
+          "roadway",
+          "and"
+        ],
+        "override": false
+      },
+      "10": {
+        "words": [
+          "Common",
+          "friends",
+          "echoed",
+          "Mr"
+        ],
+        "override": false
+      },
+      "11": {
+        "words": [
+          "pleasantest",
+          "room",
+          "in",
+          "London"
+        ],
+        "override": false
+      },
+      "12": {
+        "words": [
+          "DR",
+          "JEKYLL",
+          "WAS",
+          "QUITE"
+        ],
+        "override": false
+      },
+      "13": {
+        "words": [
+          "Well",
+          "I",
+          "tell",
+          "you"
+        ],
+        "override": false
+      },
+      "14": {
+        "words": [
+          "THE",
+          "CAREW",
+          "MURDER",
+          "CASE"
+        ],
+        "override": false
+      },
+      "15": {
+        "words": [
+          "much",
+          "surprised",
+          "and",
+          "a"
+        ],
+        "override": false
+      },
+      "16": {
+        "words": [
+          "number",
+          "of",
+          "degrees",
+          "and"
+        ],
+        "override": false
+      },
+      "17": {
+        "words": [
+          "At",
+          "this",
+          "moment",
+          "however"
+        ],
+        "override": false
+      },
+      "18": {
+        "words": [
+          "INCIDENT",
+          "OF",
+          "THE",
+          "LETTER"
+        ],
+        "override": false
+      },
+      "19": {
+        "words": [
+          "Utterson",
+          "I",
+          "swear",
+          "to"
+        ],
+        "override": false
+      },
+      "20": {
+        "words": [
+          "On",
+          "his",
+          "way",
+          "out"
+        ],
+        "override": false
+      },
+      "21": {
+        "words": [
+          "know",
+          "what",
+          "to",
+          "do"
+        ],
+        "override": false
+      },
+      "22": {
+        "words": [
+          "INCIDENT",
+          "OF",
+          "DR",
+          "LANYON"
+        ],
+        "override": false
+      },
+      "23": {
+        "words": [
+          "He",
+          "had",
+          "his",
+          "death-warrant"
+        ],
+        "override": false
+      },
+      "24": {
+        "words": [
+          "dark",
+          "influence",
+          "of",
+          "Hyde"
+        ],
+        "override": false
+      },
+      "25": {
+        "words": [
+          "INCIDENT",
+          "AT",
+          "THE",
+          "WINDOW"
+        ],
+        "override": false
+      },
+      "26": {
+        "words": [
+          "very",
+          "glad",
+          "to",
+          "see"
+        ],
+        "override": false
+      },
+      "27": {
+        "words": [
+          "THE",
+          "LAST",
+          "NIGHT",
+          "Mr"
+        ],
+        "override": false
+      },
+      "28": {
+        "words": [
+          "butler\u2019s",
+          "face",
+          "and",
+          "perhaps"
+        ],
+        "override": false
+      },
+      "29": {
+        "words": [
+          "Now",
+          "sir",
+          "said",
+          "he"
+        ],
+        "override": false
+      },
+      "30": {
+        "words": [
+          "wholesale",
+          "chemists",
+          "in",
+          "town"
+        ],
+        "override": false
+      },
+      "31": {
+        "words": [
+          "appalling",
+          "to",
+          "consider",
+          "but"
+        ],
+        "override": false
+      },
+      "32": {
+        "words": [
+          "I",
+          "own",
+          "I",
+          "felt"
+        ],
+        "override": false
+      },
+      "33": {
+        "words": [
+          "But",
+          "now",
+          "the",
+          "ten"
+        ],
+        "override": false
+      },
+      "34": {
+        "words": [
+          "all",
+          "were",
+          "empty",
+          "and"
+        ],
+        "override": false
+      },
+      "35": {
+        "words": [
+          "Next",
+          "they",
+          "turned",
+          "to"
+        ],
+        "override": false
+      },
+      "36": {
+        "words": [
+          "DR",
+          "LANYON\u2019S",
+          "NARRATIVE",
+          "On"
+        ],
+        "override": false
+      },
+      "37": {
+        "words": [
+          "you",
+          "that",
+          "amount",
+          "of"
+        ],
+        "override": false
+      },
+      "38": {
+        "words": [
+          "enough",
+          "made",
+          "up",
+          "but"
+        ],
+        "override": false
+      },
+      "39": {
+        "words": [
+          "At",
+          "the",
+          "time",
+          "I"
+        ],
+        "override": false
+      },
+      "40": {
+        "words": [
+          "He",
+          "sprang",
+          "to",
+          "it"
+        ],
+        "override": false
+      },
+      "41": {
+        "words": [
+          "eyes",
+          "gasping",
+          "with",
+          "open"
+        ],
+        "override": false
+      },
+      "42": {
+        "words": [
+          "HENRY",
+          "JEKYLL\u2019S",
+          "FULL",
+          "STATEMENT"
+        ],
+        "override": false
+      },
+      "43": {
+        "words": [
+          "been",
+          "doomed",
+          "to",
+          "such"
+        ],
+        "override": false
+      },
+      "44": {
+        "words": [
+          "the",
+          "very",
+          "fortress",
+          "of"
+        ],
+        "override": false
+      },
+      "45": {
+        "words": [
+          "hence",
+          "as",
+          "I",
+          "think"
+        ],
+        "override": false
+      },
+      "46": {
+        "words": [
+          "to",
+          "doff",
+          "at",
+          "once"
+        ],
+        "override": false
+      },
+      "47": {
+        "words": [
+          "but",
+          "to",
+          "point",
+          "out"
+        ],
+        "override": false
+      },
+      "48": {
+        "words": [
+          "overpowering",
+          "sweetness",
+          "of",
+          "relief"
+        ],
+        "override": false
+      },
+      "49": {
+        "words": [
+          "that",
+          "he",
+          "had",
+          "lost"
+        ],
+        "override": false
+      },
+      "50": {
+        "words": [
+          "set",
+          "out",
+          "through",
+          "the"
+        ],
+        "override": false
+      },
+      "51": {
+        "words": [
+          "There",
+          "comes",
+          "an",
+          "end"
+        ],
+        "override": false
+      },
+      "52": {
+        "words": [
+          "fury",
+          "and",
+          "the",
+          "smile"
+        ],
+        "override": false
+      },
+      "53": {
+        "words": [
+          "sensations",
+          "that",
+          "heralded",
+          "the"
+        ],
+        "override": false
+      },
+      "54": {
+        "words": [
+          "in",
+          "order",
+          "to",
+          "involve"
+        ],
+        "override": false
+      }
+    }
   }
 }

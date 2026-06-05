@@ -17,4 +17,5 @@ config = {
     'tick_interval_ms': 800,         # Interval between counting ticks
     'confirm_btn': 'TR',             # Button to confirm selection (UP, top-right)
     'default_centre': 5,             # Starting digit for tilt input (0-9)
+    'base': 4,                        # Haptic encoding base (longs=n//base, shorts=n%base)
 }

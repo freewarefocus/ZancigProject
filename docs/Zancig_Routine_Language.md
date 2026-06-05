@@ -225,6 +225,7 @@ platform inside `zri` itself).
 - **Display:** `show()`, `show_large()`, `show_page()`, `clear()`
 - **Sound:** `tone()`, `melody()`, `volume()` *(capability-gated — check first, §8)*
 - **Config:** `load_config()`, `save_config()`
+- **Data:** `load_data()`, `query_data()`
 - **Utility:** `battery_pct()`, `sleep_ms()`
 
 ### Named output is the default; raw output is an escape hatch

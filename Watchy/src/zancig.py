@@ -135,15 +135,15 @@ def pulse_short(trailing=True):
 def pulse_long(trailing=True):
     buzz(LONG_MS, GAP_MS if trailing else 0)
 
-def send_digit(n):
+def send_digit(n, base=4):
     """
     Encode digit 1-9 as haptic pulses.
-    1=*  2=**  3=***  4=-  5=-*  6=-**  7=-***  8=--  9=--*
+    Default base 4: 1=*  2=**  3=***  4=-  5=-*  6=-**  7=-***  8=--  9=--*
     """
     if not 1 <= n <= 9:
         raise ValueError(f"Digit out of range: {n}")
-    longs  = n // 4
-    shorts = n % 4
+    longs  = n // base
+    shorts = n % base
     for i in range(longs):
         pulse_long(trailing=(shorts > 0 or i < longs - 1))
     for i in range(shorts):

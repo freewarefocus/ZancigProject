@@ -127,16 +127,6 @@ The easiest way to get page text out is the **Export Pages JSON** button, availa
 
 JSON handles all the escaping (quotes, unicode, etc.) so this never breaks regardless of what's in the text. You can also hit the endpoint directly: `GET /api/<slug>/export`.
 
-From there, building a crib is trivial:
-
-```python
-import json
-pages = json.loads(open("the-strange-case-of-dr-jekyll-and-mr-hyde-pages.json").read())
-for p in pages:
-    first_line = p["text"].split('\n')[0]
-    print(f"Page {p['page']}: {first_line}")
-```
-
 ## Using the Raw Project JSON
 
 For more control, you can work with the raw project file (`data/{slug}.json`) and the source text directly:

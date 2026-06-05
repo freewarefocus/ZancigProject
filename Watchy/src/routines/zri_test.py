@@ -185,6 +185,18 @@ def run():
     zri.haptic_nack()
     _pass()
 
+    # -- configure override --
+    _label('configure(3,3)')
+    zri.configure(centre=3, base=3)
+    zri.haptic_digit(7)      # base 3: longs=2, shorts=1 -> LLS
+    _pass('base3 dig7')
+
+    # Reset via init
+    _label('init() reset')
+    zri.init()
+    zri.haptic_digit(7)      # back to base 4: longs=1, shorts=3 -> LSSS
+    _pass('base4 dig7')
+
     # -- sleep_ms --
     _label('sleep_ms 500')
     zri.sleep_ms(500)

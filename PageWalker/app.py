@@ -5,10 +5,11 @@ Run:  python app.py   then open http://localhost:5000
 
 import re
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, Response
 from werkzeug.utils import secure_filename
 
 from walker import WalkProject, ProjectStore, detect_chapters, preprocess_gutenberg
+from crib import generate_crib, apply_rule, export_crib_dat, PRESET_SCHEMAS
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
@@ -231,6 +232,96 @@ def api_find(slug):
     if not phrase:
         return jsonify({"error": "phrase required"}), 400
     return jsonify(project.find_page_for_phrase(phrase))
+
+
+# ---------------------------------------------------------------------------
+# Crib API
+# ---------------------------------------------------------------------------
+
+@app.route("/project/<slug>/crib")
+def crib_view(slug):
+    project = store.load(slug)
+    if not project:
+        return "Project not found", 404
+    return render_template("crib.html", project=project)
+
+
+@app.route("/api/<slug>/crib/presets")
+def api_crib_presets(slug):
+    project = store.load(slug)
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    return jsonify({"presets": PRESET_SCHEMAS})
+
+
+@app.route("/api/<slug>/crib")
+def api_crib(slug):
+    project = store.load(slug)
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    return jsonify(project.crib)
+
+
+@app.route("/api/<slug>/crib/generate", methods=["POST"])
+def api_crib_generate(slug):
+    project = store.load(slug)
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    data = request.get_json()
+    rule = data.get("rule", "long_word")
+    knobs = data.get("knobs", {})
+    # Coerce knob values to int
+    knobs = {k: int(v) for k, v in knobs.items()}
+    crib = generate_crib(project, rule, knobs)
+    store.save(project)
+    return jsonify(crib)
+
+
+@app.route("/api/<slug>/crib/edit/<int:page>", methods=["POST"])
+def api_crib_edit(slug, page):
+    project = store.load(slug)
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    data = request.get_json()
+    words = data.get("words", [])
+    pg_key = str(page)
+    if "entries" not in project.crib:
+        project.crib["entries"] = {}
+    project.crib["entries"][pg_key] = {"words": words, "override": True}
+    store.save(project)
+    return jsonify({"success": True, "page": page, "entry": project.crib["entries"][pg_key]})
+
+
+@app.route("/api/<slug>/crib/reset/<int:page>", methods=["POST"])
+def api_crib_reset(slug, page):
+    project = store.load(slug)
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    rule = project.crib.get("rule", "long_word")
+    knobs = project.crib.get("knobs", {})
+    page_data = project.get_page_text(page)
+    if page_data is None:
+        return jsonify({"error": f"Page {page} not mapped"}), 404
+    words = apply_rule(page_data["text"], rule, knobs)
+    pg_key = str(page)
+    if "entries" not in project.crib:
+        project.crib["entries"] = {}
+    project.crib["entries"][pg_key] = {"words": words, "override": False}
+    store.save(project)
+    return jsonify({"success": True, "page": page, "entry": project.crib["entries"][pg_key]})
+
+
+@app.route("/api/<slug>/crib/export.dat")
+def api_crib_export_dat(slug):
+    project = store.load(slug)
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    dat = export_crib_dat(project)
+    return Response(
+        dat,
+        mimetype="text/plain",
+        headers={"Content-Disposition": f"attachment; filename={slug}-crib.dat"},
+    )
 
 
 if __name__ == "__main__":

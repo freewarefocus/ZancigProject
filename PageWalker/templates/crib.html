@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+{% block title %}PageWalker - {{ project.title }} - Crib{% endblock %}
+
+{% block breadcrumb %}
+<span class="sep">/</span>
+<a href="/project/{{ project.slug }}">{{ project.title }}</a>
+<span class="sep">/</span>
+<a href="/project/{{ project.slug }}/crib">Crib</a>
+{% endblock %}
+
+{% block extra_css %}
+.crib-header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 16px;
+}
+
+.rule-config { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.rule-config > div { display: flex; flex-direction: column; }
+.rule-desc {
+  font-size: .82rem; color: var(--faded); font-style: italic;
+  margin-top: 8px;
+}
+
+.knobs-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.knob-field label { margin-bottom: 3px; }
+.knob-field input[type=number] { width: 80px; }
+
+.crib-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.crib-table th {
+  text-align: left; padding: 8px 12px;
+  font-family: 'Source Code Pro', monospace; font-size: .72rem;
+  text-transform: uppercase; letter-spacing: .07em;
+  background: var(--cream); border-bottom: 2px solid var(--border);
+  color: var(--faded); position: sticky; top: 0; z-index: 2;
+}
+.crib-table td {
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.crib-table tr:hover td { background: var(--paper); }
+
+.word-primary {
+  color: var(--rust); font-weight: 700;
+  font-family: 'Source Code Pro', monospace;
+}
+.word-fallback {
+  color: var(--faded);
+  font-family: 'Source Code Pro', monospace;
+}
+.word-sep { color: var(--border); margin: 0 4px; }
+
+.badge-override {
+  font-family: 'Source Code Pro', monospace; font-size: .68rem;
+  padding: 1px 5px; border-radius: 2px;
+  background: rgba(200,151,58,.15); color: var(--gold);
+  font-weight: 600;
+}
+.badge-empty {
+  font-family: 'Source Code Pro', monospace; font-size: .68rem;
+  padding: 1px 5px; border-radius: 2px;
+  background: rgba(139,26,26,.08); color: var(--red);
+}
+
+.edit-input {
+  width: 100%; padding: 6px 8px;
+  font-family: 'Source Code Pro', monospace; font-size: .85rem;
+  border: 1px solid var(--gold); border-radius: 2px;
+  background: #fff; color: var(--ink);
+}
+.edit-input:focus { outline: none; border-color: var(--rust); }
+
+.export-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 16px; padding: 12px 16px;
+  background: var(--cream); border: 1px solid var(--border); border-radius: 3px;
+}
+.export-stats {
+  font-family: 'Source Code Pro', monospace; font-size: .78rem;
+  color: var(--faded);
+}
+
+#alert-box { display: none; }
+{% endblock %}
+
+{% block content %}
+<div class="crib-header">
+  <h1 style="font-size:1.3rem;">{{ project.title }} — Crib</h1>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <a href="/project/{{ project.slug }}/markers" class="btn btn-secondary btn-sm">Markers</a>
+    <a href="/project/{{ project.slug }}" class="btn btn-secondary btn-sm">Back to Walk</a>
+  </div>
+</div>
+
+<div id="alert-box" class="alert"></div>
+
+<div class="card">
+  <div class="card-title">Rule Configuration</div>
+  <div class="rule-config">
+    <div>
+      <label>Preset</label>
+      <select id="preset-select"></select>
+    </div>
+    <div id="knobs-container" class="knobs-row"></div>
+    <div>
+      <button class="btn btn-primary btn-sm" id="btn-generate">Generate</button>
+    </div>
+  </div>
+  <div class="rule-desc" id="rule-desc"></div>
+</div>
+
+<div class="card" id="crib-card">
+  <table class="crib-table">
+    <thead>
+      <tr>
+        <th style="width:60px;">Page</th>
+        <th>Words</th>
+        <th style="width:80px;">Status</th>
+        <th style="width:120px;"></th>
+      </tr>
+    </thead>
+    <tbody id="crib-body">
+      <tr><td colspan="4" class="empty-state">Select a preset and click Generate to build crib</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="export-bar" id="export-bar" style="display:none;">
+  <span class="export-stats" id="export-stats"></span>
+  <button class="btn btn-primary btn-sm" id="btn-export-dat">Export .dat</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SLUG = '{{ project.slug }}';
+
+let presets = [];
+let currentCrib = null;
+
+const $presetSelect = document.getElementById('preset-select');
+const $knobsContainer = document.getElementById('knobs-container');
+const $ruleDesc = document.getElementById('rule-desc');
+const $cribBody = document.getElementById('crib-body');
+const $exportBar = document.getElementById('export-bar');
+const $exportStats = document.getElementById('export-stats');
+const $alertBox = document.getElementById('alert-box');
+
+function showAlert(msg, type) {
+  $alertBox.className = 'alert alert-' + type;
+  $alertBox.textContent = msg;
+  $alertBox.style.display = 'block';
+  setTimeout(() => { $alertBox.style.display = 'none'; }, 4000);
+}
+
+async function api(url, opts) {
+  return (await fetch(url, opts)).json();
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// --- Presets ---
+
+async function loadPresets() {
+  const data = await api(`/api/${SLUG}/crib/presets`);
+  presets = data.presets;
+
+  $presetSelect.innerHTML = '';
+  for (const p of presets) {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    opt.textContent = p.label;
+    $presetSelect.appendChild(opt);
+  }
+
+  onPresetChange();
+}
+
+function onPresetChange() {
+  const name = $presetSelect.value;
+  const preset = presets.find(p => p.name === name);
+  if (!preset) return;
+
+  $ruleDesc.textContent = preset.description;
+
+  // Render knobs
+  $knobsContainer.innerHTML = '';
+  for (const [key, schema] of Object.entries(preset.knobs)) {
+    const div = document.createElement('div');
+    div.className = 'knob-field';
+    div.innerHTML = `<label>${escHtml(key.replace(/_/g, ' '))}</label>
+      <input type="number" id="knob-${key}" value="${schema.default}"
+             min="${schema.min}" max="${schema.max}">`;
+    $knobsContainer.appendChild(div);
+  }
+}
+
+function getKnobs() {
+  const name = $presetSelect.value;
+  const preset = presets.find(p => p.name === name);
+  if (!preset) return {};
+  const knobs = {};
+  for (const key of Object.keys(preset.knobs)) {
+    const el = document.getElementById(`knob-${key}`);
+    if (el) knobs[key] = parseInt(el.value) || preset.knobs[key].default;
+  }
+  return knobs;
+}
+
+// --- Generate ---
+
+async function doGenerate() {
+  const rule = $presetSelect.value;
+  const knobs = getKnobs();
+  const data = await api(`/api/${SLUG}/crib/generate`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({rule, knobs}),
+  });
+  if (data.error) {
+    showAlert(data.error, 'error');
+    return;
+  }
+  currentCrib = data;
+  renderCribTable(data);
+  showAlert('Crib generated', 'success');
+}
+
+// --- Render table ---
+
+function renderCribTable(crib) {
+  const entries = crib.entries || {};
+  const pages = Object.keys(entries).sort((a, b) => parseInt(a) - parseInt(b));
+
+  if (pages.length === 0) {
+    $cribBody.innerHTML = '<tr><td colspan="4" class="empty-state">No entries generated</td></tr>';
+    $exportBar.style.display = 'none';
+    return;
+  }
+
+  let html = '';
+  let total = 0, overrides = 0, empties = 0;
+
+  for (const pg of pages) {
+    const entry = entries[pg];
+    const words = entry.words || [];
+    total++;
+    if (entry.override) overrides++;
+    if (words.length === 0) empties++;
+
+    html += `<tr id="crib-row-${pg}" data-page="${pg}">`;
+    html += `<td style="font-family:'Source Code Pro',monospace; font-weight:700; color:var(--rust);">${pg}</td>`;
+
+    // Words cell
+    html += `<td id="crib-words-${pg}">`;
+    html += renderWords(words);
+    html += `</td>`;
+
+    // Status
+    html += '<td>';
+    if (entry.override) html += '<span class="badge-override">override</span>';
+    else if (words.length === 0) html += '<span class="badge-empty">empty</span>';
+    html += '</td>';
+
+    // Actions
+    html += '<td style="white-space:nowrap;">';
+    html += `<button class="btn btn-secondary btn-sm" onclick="startEdit(${pg})">Edit</button>`;
+    if (entry.override) {
+      html += ` <button class="btn btn-secondary btn-sm" onclick="doReset(${pg})">Reset</button>`;
+    }
+    html += '</td>';
+
+    html += '</tr>';
+  }
+
+  $cribBody.innerHTML = html;
+
+  // Export bar
+  $exportStats.textContent = `${total} pages | ${overrides} overrides | ${empties} empty`;
+  $exportBar.style.display = 'flex';
+}
+
+function renderWords(words) {
+  if (words.length === 0) return '<span style="color:var(--faded); font-style:italic;">no words</span>';
+  let html = `<span class="word-primary">${escHtml(words[0])}</span>`;
+  for (let i = 1; i < words.length; i++) {
+    html += `<span class="word-sep">;</span><span class="word-fallback">${escHtml(words[i])}</span>`;
+  }
+  return html;
+}
+
+// --- Inline edit ---
+
+function startEdit(page) {
+  const pg = String(page);
+  const entry = currentCrib.entries[pg];
+  if (!entry) return;
+
+  const cell = document.getElementById(`crib-words-${pg}`);
+  const current = (entry.words || []).join('; ');
+
+  cell.innerHTML = `<div style="display:flex; gap:6px; align-items:center;">
+    <input type="text" class="edit-input" id="edit-val-${pg}" value="${escHtml(current)}">
+    <button class="btn btn-primary btn-sm" onclick="saveEdit(${page})">Save</button>
+    <button class="btn btn-secondary btn-sm" onclick="cancelEdit(${page})">Cancel</button>
+  </div>`;
+
+  document.getElementById(`edit-val-${pg}`).focus();
+  document.getElementById(`edit-val-${pg}`).addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveEdit(page);
+    if (e.key === 'Escape') cancelEdit(page);
+  });
+}
+
+async function saveEdit(page) {
+  const pg = String(page);
+  const input = document.getElementById(`edit-val-${pg}`);
+  const words = input.value.split(';').map(w => w.trim()).filter(w => w);
+
+  const data = await api(`/api/${SLUG}/crib/edit/${page}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({words}),
+  });
+
+  if (data.error) {
+    showAlert(data.error, 'error');
+    return;
+  }
+
+  currentCrib.entries[pg] = data.entry;
+  renderCribTable(currentCrib);
+  showAlert(`Page ${page} updated`, 'success');
+}
+
+function cancelEdit(page) {
+  const pg = String(page);
+  const entry = currentCrib.entries[pg];
+  const cell = document.getElementById(`crib-words-${pg}`);
+  cell.innerHTML = renderWords(entry.words || []);
+}
+
+// --- Reset ---
+
+async function doReset(page) {
+  const data = await api(`/api/${SLUG}/crib/reset/${page}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+  });
+
+  if (data.error) {
+    showAlert(data.error, 'error');
+    return;
+  }
+
+  currentCrib.entries[String(page)] = data.entry;
+  renderCribTable(currentCrib);
+  showAlert(`Page ${page} reset`, 'success');
+}
+
+// --- Export ---
+
+function doExportDat() {
+  window.location = `/api/${SLUG}/crib/export.dat`;
+}
+
+// --- Load existing ---
+
+async function loadExistingCrib() {
+  const data = await api(`/api/${SLUG}/crib`);
+  if (data && data.entries && Object.keys(data.entries).length > 0) {
+    currentCrib = data;
+
+    // Restore preset select and knobs
+    if (data.rule) {
+      $presetSelect.value = data.rule;
+      onPresetChange();
+      if (data.knobs) {
+        for (const [key, val] of Object.entries(data.knobs)) {
+          const el = document.getElementById(`knob-${key}`);
+          if (el) el.value = val;
+        }
+      }
+    }
+
+    renderCribTable(data);
+  }
+}
+
+// --- Wire up ---
+
+$presetSelect.addEventListener('change', onPresetChange);
+document.getElementById('btn-generate').addEventListener('click', doGenerate);
+document.getElementById('btn-export-dat').addEventListener('click', doExportDat);
+
+// Init
+loadPresets().then(() => loadExistingCrib());
+</script>
+{% endblock %}

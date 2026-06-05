@@ -30,6 +30,7 @@ Current capabilities:
 | `sound` | bool | False | True |
 | `accel` | bool | True | False |
 | `battery` | bool | True | True |
+| `data` | bool | True | True |
 | `device` | str | `'watchy'` | `'thumby_color'` |
 | `input_method` | str | `'tilt'` | `'dpad'` |
 
@@ -39,14 +40,17 @@ Routines check `CAPS` before using optional features.
 
 ### Lifecycle
 
-#### `init()`
+#### `init() -> dict`
 Prepare ZRI for use. Safe to call multiple times (idempotent).
+Returns the `CAPS` dict for convenience — equivalent to accessing `zri.CAPS` directly.
 - **First call** (launcher at boot): hardware init, load config, populate `CAPS`
 - **Every call**: (re)calibrate input baseline (e.g. accelerometer neutral on Watchy)
 
 Routines call `init()` at their start. This captures the performer's current
 position as the input reference point. The routine doesn't know or care what
 device-specific setup happens inside -- it just means "I'm ready, prepare input."
+
+Every call resets `configure()` overrides (centre, base) to the config baseline.
 
 #### `stealth()`
 Go dark immediately. Display off, backlight off, all visual output suppressed.
@@ -65,6 +69,27 @@ press before returning to the launcher menu. The device just sits dark and idle
 until the performer is ready.
 
 Typical routine lifecycle: `init()` -> do work -> `done()` -> back to menu.
+
+### Per-Routine Configuration
+
+#### `configure(centre=None, base=None)`
+Override input centre and/or haptic encoding base for this routine. Call after `init()`. Omit a kwarg to keep the device default.
+
+- `centre`: starting digit for jog input (overrides `default_centre` from config)
+- `base`: haptic encoding divisor (overrides `base` from config). `longs = n // base`, `shorts = n % base`
+
+**Precedence:** `configure()` override > `zri_cfg.py` value > built-in default.
+
+**Soft semantics:** `configure()` never raises. On a device without haptic, `base` is stored but never consumed. On a device without tilt input, `centre` is stored but never read. This lets routines call `configure()` unconditionally without checking CAPS.
+
+**Reset:** `init()` resets both values to the config baseline, clearing any previous routine's override. This happens automatically when the next routine calls `init()`.
+
+```python
+zri.init()
+zri.configure(centre=3, base=3)   # base-3 encoding, jog starts at 3
+n = zri.get_digit(1, 6)           # jog starts at 3
+zri.haptic_digit(n)               # encoded with base 3
+```
 
 ### Input
 
@@ -106,8 +131,8 @@ zri.haptic('LLS', {'long_ms': 500})  # custom timing
 ```
 
 #### `haptic_digit(n) -> bool`
-Standard encoding: `longs = n // 4`, `shorts = n % 4`.
-Matches `zancig.send_digit(n)` output for 1-9.
+Standard encoding: `longs = n // base`, `shorts = n % base`.
+Base defaults to 4 (from config), overridable via `configure(base=N)`.
 
 | n | Pattern | Pulses |
 |---|---------|--------|
@@ -265,6 +290,52 @@ Load `/routines/{name}_cfg.py`, merged with defaults. Delegates to device framew
 #### `save_config(name, data)`
 Write config dict to `/routines/{name}_cfg.py`.
 
+### Data
+
+Pipe-delimited `.dat` files in `/data/` on device. UTF-8, `#` comment lines. One key-value pair per line, separated by `|`. Values may be any length (single word, phrase, short sentence). Shared across routines — the same book crib can serve multiple routines.
+
+#### File format
+
+```
+# Book: Dr Jekyll & Mr Hyde (Dover Thrift Edition)
+# Source: PageWalker export
+#
+1|that they said nothing
+2|stumping along eastward
+3|the whole business looked
+```
+
+#### `load_data(name) -> dict`
+Load entire `/data/{name}.dat` into a dict. Keys and values are strings. Returns empty dict if file not found.
+
+For data that fits in RAM (up to ~500 entries on ESP32). Fire-and-forget — load once at routine start, look up by key thereafter.
+
+```python
+crib = zri.load_data('jekyll_hyde')
+text = lookup(crib, str(page), '???')
+zri.show_large(text)
+```
+
+#### `query_data(name, key) -> str | None`
+Stream-search a `.dat` file for a single key without loading the whole file. Returns the value string, or None if not found.
+
+For data too large for RAM (365+ entries). Linear scan: ~1-3 seconds for a 36,500-line file on ESP32. Acceptable for a single mid-performance lookup.
+
+```python
+fact = zri.query_data('date_facts', f'{month}/{day}')
+if fact is None:
+    fact = 'Nothing notable'
+zri.show_large(fact)
+```
+
+#### Sizing guidance
+
+| Size | Entries | Approach | Example |
+|---|---|---|---|
+| Tiny | <50 | Inline dict in routine | 9-word list, card positions |
+| Small-Medium | 50-500 | `load_data()` | Book test (54pp), full deck (52) |
+| Large | 500+ | `query_data()` | Date facts (365-36,500 entries) |
+
 ### Utility
 
 #### `battery_pct() -> int | None`
@@ -284,7 +355,7 @@ Characters:
 Gaps are auto-inserted between consecutive characters (default 200ms).
 
 ### Digit Encoding (Standard)
-`longs = n // 4`, `shorts = n % 4`. Used by `haptic_digit()`.
+`longs = n // base`, `shorts = n % base`. Default base is 4, configurable via `zri_cfg.py` or `configure(base=N)`. Used by `haptic_digit()`.
 
 ### Signal Patterns
 - **Ready**: `LL` (two longs)
@@ -304,6 +375,7 @@ config = {
     'tilt_threshold': 300, 'tick_interval_ms': 800,
     'confirm_btn': 'TL',
     'default_centre': 5,
+    'base': 4,                   # haptic encoding base (longs=n//base, shorts=n%base)
 }
 ```
 
@@ -312,6 +384,17 @@ Routines use `zri.load_config()` / `zri.save_config()` for their own settings.
 Device-level timings live in `zri_cfg.py`, not in routine configs.
 
 ## Routine Authoring Guide
+
+### Adaptive routine (using CAPS)
+
+```python
+import zri
+
+def run():
+    caps = zri.init()
+    rich = caps['screen']
+    # ... adapt behavior based on device capabilities
+```
 
 ### Minimal routine
 

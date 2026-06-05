@@ -138,6 +138,7 @@ class WalkProject:
     chapters_new_page: bool = True
     chapter_offsets: list[int] = field(default_factory=list)
     pages: dict[int, PageData] = field(default_factory=dict)
+    crib: dict = field(default_factory=dict)
 
     # Cached fields (not persisted)
     _text: Optional[str] = field(default=None, repr=False)
@@ -487,6 +488,7 @@ class WalkProject:
             "chapters_new_page": self.chapters_new_page,
             "chapter_offsets": self.chapter_offsets,
             "pages": {str(k): v.to_dict() for k, v in self.pages.items()},
+            "crib": self.crib,
         }
 
     @classmethod
@@ -505,6 +507,7 @@ class WalkProject:
             int(k): PageData.from_dict(v)
             for k, v in d.get("pages", {}).items()
         }
+        proj.crib = d.get("crib", {})
         return proj
 
 

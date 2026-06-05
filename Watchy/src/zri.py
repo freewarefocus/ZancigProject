@@ -12,6 +12,8 @@ _cfg = {}
 _neutral = None
 _hw_ready = False
 _font_scale = 2
+_centre = 5
+_base = 4
 
 CAPS = {}
 
@@ -22,7 +24,7 @@ def init():
     Every call: (re)calibrate accelerometer neutral baseline.
     Launcher calls this at boot. Routines call it again at start so the
     neutral position is captured when the performer is ready to go."""
-    global _cfg, _neutral, _hw_ready
+    global _cfg, _neutral, _hw_ready, _centre, _base
 
     if not _hw_ready:
         zancig.init()
@@ -42,6 +44,7 @@ def init():
             'tick_interval_ms': zancig.TICK_INTERVAL_MS,
             'confirm_btn': 'TR',
             'default_centre': 5,
+            'base': 4,
         }
 
         try:
@@ -61,13 +64,29 @@ def init():
             'battery': True,
             'brightness': False,
             'sound': False,
+            'data': True,
             'device': _cfg['device'],
             'input_method': 'tilt',
         })
 
         _hw_ready = True
 
+    _centre = _cfg.get('default_centre', 5)
+    _base = _cfg.get('base', 4)
+
     _neutral = zancig.calibrate_neutral()
+    return CAPS
+
+
+def configure(centre=None, base=None):
+    """Override input centre and/or haptic encoding base for this routine.
+    Call after init(). Omit a kwarg to keep the device default.
+    Silently inert for subsystems absent on this device."""
+    global _centre, _base
+    if centre is not None:
+        _centre = centre
+    if base is not None:
+        _base = base
 
 
 # -- Lifecycle -----------------------------------------------------------------
@@ -119,12 +138,12 @@ def haptic(pattern, timings=None):
 
 
 def haptic_digit(n):
-    """Standard digit encoding: longs=n//4, shorts=n%4.
-    Matches zancig.send_digit() output for 1-9."""
+    """Standard digit encoding: longs=n//_base, shorts=n%_base.
+    Base is set by config or configure(). Default base 4."""
     if not 1 <= n <= 9:
         return False
-    longs = n // 4
-    shorts = n % 4
+    longs = n // _base
+    shorts = n % _base
     pat = 'L' * longs + 'S' * shorts
     return haptic(pat)
 
@@ -391,8 +410,7 @@ def get_digit(lo=1, hi=9, prompt=None, format_fn=None):
     if not CAPS.get('accel'):
         return None
 
-    centre = _cfg.get('default_centre', 5)
-    centre = max(lo, min(hi, centre))
+    centre = max(lo, min(hi, _centre))
     confirm_btn = _cfg.get('confirm_btn', 'TR')
     threshold = _cfg.get('tilt_threshold', 300)
     interval = _cfg.get('tick_interval_ms', 800)
@@ -468,6 +486,41 @@ def load_config(name, defaults=None):
 def save_config(name, data):
     """Save routine config. Delegates to zancig."""
     zancig.save_config(name, data)
+
+
+# -- Data ----------------------------------------------------------------------
+
+def load_data(name):
+    """Load /data/{name}.dat into a dict. Keys and values are strings."""
+    result = {}
+    try:
+        with open(f'/data/{name}.dat') as f:
+            for line in f:
+                line = line.strip()
+                if len(line) == 0 or line[0] == '#':
+                    continue
+                i = line.find('|')
+                if i > 0:
+                    result[line[:i]] = line[i + 1:]
+    except OSError:
+        pass
+    return result
+
+
+def query_data(name, key):
+    """Stream-search /data/{name}.dat for a single key. Returns value or None."""
+    try:
+        with open(f'/data/{name}.dat') as f:
+            for line in f:
+                line = line.strip()
+                if len(line) == 0 or line[0] == '#':
+                    continue
+                i = line.find('|')
+                if i > 0 and line[:i] == key:
+                    return line[i + 1:]
+    except OSError:
+        pass
+    return None
 
 
 # -- Utility -------------------------------------------------------------------
