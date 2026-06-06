@@ -16,13 +16,36 @@ The audience sees nothing. No phone. No earpiece. No assistant.
 
 ---
 
+## The Zancig Philosophy
+
+Zancig is named after Julius and Agnes Zancig, whose performances set the gold standard for seamless, invisible technique in service of pure theatrical effect. That same principle guides everything in this project.
+
+**The performer is sovereign.**
+The tool conforms to the act. Not the reverse.
+
+**Infrastructure, not artistry.**
+Zancig handles the reliable and the technical. The performer brings the artistry.
+
+**The device disappears.**
+A working Zancig routine leaves no trace of technology in the mind of the audience. The goal is always a seamless performance, not an impressive gadget.
+
+**Freedom at every layer.**
+Swap a data file. Adjust a config. Reshape a routine. Rewrite the firmware. Every layer of the stack is open, accessible, and yours. Take what you need and leave the rest.
+
+**Open by principle.**
+Shared tools, shared data, shared platforms. The community builds the ecosystem. The performer makes it their own.
+
+Zancig does not tell you how to perform. It extends your performance into territory that would otherwise require compromise.
+
+---
+
 ## How It Works
 
 Every Zancig routine follows the same covert I/O loop:
 
 1. **Secret input** -- The performer enters information using button presses or accelerometer tilt (a jog-dial gesture) while the device is palmed, hidden in a pocket or under a sleeve.
 2. **Computation** -- The routine processes the input (a lookup, a calculation, a mapping).
-3. **Covert output** -- The result comes back as a haptic vibration pattern (e.g., short-short-long = digit 7) or as text on a screen the performer peeks at during a natural gesture.
+3. **Covert output** -- The result comes back as a haptic vibration pattern (e.g., long-short-short = digit 7) or as text on a screen the performer peeks at during a natural gesture.
 
 Haptic output works eyes-free and fully concealed. Screen output requires a brief glance but can convey more information. The performer chooses which mode fits the moment.
 
@@ -163,7 +186,7 @@ See [`PageWalker/README.md`](PageWalker/README.md) for setup and usage.
 
 ---
 
-## Design Philosophy
+## Design Principles
 
 - **Stealth-first.** The device is dark and silent by default. Display and sound are opt-in per routine. Haptic is the primary output channel.
 - **Performance resilience.** A failure during a show is catastrophic, not inconvenient. Code paths are kept simple. No databases, no network dependencies, no complex state machines.
@@ -196,7 +219,7 @@ Please open an issue before beginning significant new work, to avoid duplication
 
 ## Attribution
 
-Named after Julius and Agnes Zancig, Danish-American mentalists whose celebrated two-person telepathy act (late 1800s -- early 1900s) remains a foundational reference in the history of covert performance communication. Their methods, their discipline, and their respect for the audience remain the spirit behind this project.
+Named after Julius and Agnes Zancig, Danish-American mentalists whose celebrated two-person telepathy act (late 1800s -- early 1900s) remains a foundational reference in the history of covert performance communication.
 
 ---
 
