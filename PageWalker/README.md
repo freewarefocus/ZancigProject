@@ -2,15 +2,13 @@
 
 Sequential exact-boundary book mapper. Maps plain-text books to physical page numbers so you can build page-level cribs for book tests.
 
-## The Book Test Use Case
+## Book Test Crib Generator
 
-A **book test** is a mentalism effect where a spectator opens a book to any page and the performer reveals what's written there. To perform this, you need a **crib** — a cheat sheet mapping page numbers to memorable words or phrases from that page.
+PageWalker is a crib generator for book tests. It takes any printed book you have the full text for and maps words precisely to each physical page, then extracts crib entries automatically using configurable rules.
 
-The problem: you need the *exact* text on each physical page, but all you have is a continuous digital text file (e.g., from Project Gutenberg). Page breaks in the printed edition don't exist in the `.txt` file.
+The problem it solves: a digital text file (e.g., from Project Gutenberg) has no page breaks. PageWalker lets you walk through the book page-by-page with the physical copy in hand, marking where each page ends in the digital text. Once mapped, the built-in crib builder extracts memorable words per page and exports a device-ready `.dat` file.
 
-PageWalker solves this by letting you walk through the book page-by-page with the physical copy in hand, marking exactly where each page ends in the digital text. The output is a JSON file that maps every page number to its precise character range, which you can then use to extract text for crib building.
-
-This works especially well with cheap **Dover Thrift Editions** and other public-domain printings where the text is freely available on Gutenberg.
+Works especially well with cheap **Dover Thrift Editions** and other public-domain printings where the text is freely available on Gutenberg.
 
 ## Setup
 
@@ -55,6 +53,46 @@ Click **Markers** to see all mapped page boundaries in a table. You can click **
 The walk page includes a Lookup section at the bottom:
 - **Page #** — Enter a page number to see the full mapped text for that page.
 - **Find phrase** — Search for any phrase to find which page it falls on.
+
+### 7. Crib Builder
+
+Once the walk is complete, the crib builder extracts memorable words from each mapped page. Access it via the link on the walk-complete screen or the Markers page, or directly at `/project/<slug>/crib`.
+
+#### Preset Rules
+
+| Preset | Description |
+|---|---|
+| `first_word` | First word of the page, simple and fast |
+| `long_word` | First word with N+ characters, scanning from the top of the page |
+| `first_uncommon` | First word not in the common-words list, with N+ characters |
+| `last_word` | Last word of the page, fallbacks working backwards |
+
+#### Knobs
+
+Each rule exposes tunable knobs:
+
+- **`min_chars`** — Minimum character length for a word to qualify. Default: 6 for `long_word`, 4 for `first_uncommon`.
+- **`max_fallbacks`** — Number of additional qualifying words to include after the primary. Default: 3 (all rules).
+
+#### Manual Overrides
+
+Click any page's entry to edit its words manually. Overridden pages are flagged and preserved when you regenerate with a different rule or knobs. Click **Reset** to revert a page to the rule-generated words.
+
+#### Exporting .dat
+
+The crib builder exports a `.dat` file ready for device consumption via ZRI `load_data()` / `query_data()`. Format:
+
+```
+# The Strange Case of Dr Jekyll and Mr Hyde
+# Source: PageWalker crib builder
+# Rule: long_word (min_chars=6, max_fallbacks=3)
+#
+1|utterson;lawyer;rugged;countenance
+2|stumping;eastward;curious
+3|forward;haunted;singular
+```
+
+Lines starting with `#` are comments. Data lines are `page|word1;word2;word3` (pipe-delimited key and semicolon-separated words).
 
 ## JSON Output Format
 
@@ -115,6 +153,8 @@ Each page's text spans from the *previous* page's `end_offset` to this page's `e
 
 ## Exporting Page Text
 
+For most uses, the built-in **Crib Builder** handles word extraction and `.dat` export directly. The options below are for custom workflows or external tools.
+
 The easiest way to get page text out is the **Export Pages JSON** button, available on both the walk-complete screen and the Markers page. It downloads a `{slug}-pages.json` file — a flat JSON array where each entry is one page:
 
 ```json
@@ -129,7 +169,7 @@ JSON handles all the escaping (quotes, unicode, etc.) so this never breaks regar
 
 ## Using the Raw Project JSON
 
-For more control, you can work with the raw project file (`data/{slug}.json`) and the source text directly:
+For programmatic access or custom crib logic beyond the built-in presets, you can work with the raw project file (`data/{slug}.json`) and the source text directly:
 
 ```python
 import json
@@ -162,7 +202,7 @@ if page_text:
     print(f"Page 12: {first_line}")
 ```
 
-From there, you can build whatever crib format you need — first words, last words, key phrases, full page dumps, etc.
+This gives you full access to each page's text for custom extraction beyond what the built-in crib builder provides.
 
 ## Keyboard Shortcuts
 
@@ -213,3 +253,15 @@ All endpoints use the project `slug` as the identifier.
 | GET | `/api/<slug>/export` | Export all pages as `[{"page": N, "text": "..."}]` |
 | GET | `/api/<slug>/lookup/<page>` | Get full text for a mapped page |
 | POST | `/api/<slug>/find` | Find which page contains a phrase. Body: `{"phrase": str}` |
+
+### Crib API (JSON)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/project/<slug>/crib` | Crib builder UI |
+| GET | `/api/<slug>/crib/presets` | Available preset rule schemas with knob definitions |
+| GET | `/api/<slug>/crib` | Current crib data (rule, knobs, entries) |
+| POST | `/api/<slug>/crib/generate` | Generate crib. Body: `{"rule": str, "knobs": {}}` |
+| POST | `/api/<slug>/crib/edit/<page>` | Set words for a page. Body: `{"words": [str]}` |
+| POST | `/api/<slug>/crib/reset/<page>` | Reset page to rule-generated words |
+| GET | `/api/<slug>/crib/export.dat` | Download `.dat` file |
