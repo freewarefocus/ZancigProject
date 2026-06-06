@@ -8,7 +8,7 @@ A covert performance assistant for mentalists and magicians.
 
 Zancig is a concealed electronic assistant for solo performers. You palm it, wear it, or pocket it. During a performance, it accepts secret input (button presses, tilts, slides) and feeds information back to you covertly through haptic vibration patterns and discreet screen peeks.
 
-Use cases include book tests, knight's tour demonstrations, day-of-the-week calculations, number memorization reveals, and any effect where the performer needs hidden access to computed or stored information.
+Use cases include book tests, knight's tour demonstrations, day-of-the-week calculations, impossibly perfect game play, and any effect where the performer needs hidden access to computed or stored information.
 
 Everything is configurable per performer -- haptic timing and encoding, button assignments, left- or right-handed input, tilt sensitivity, confirm gestures. Commercial mentalism devices might let you pick a hand. Zancig lets you tune every parameter until the device feels like an extension of your body.
 
@@ -53,7 +53,7 @@ Haptic output works eyes-free and fully concealed. Screen output requires a brie
 
 ## Supported Hardware
 
-### Watchy V3 (active)
+### Watchy V3 (approx $60)
 
 The [Watchy](https://watchy.sqfmi.com/) by SQFMI is an open-source e-paper smartwatch based on the ESP32-S3. Its watch form factor and palmability provides natural cover for performance use.
 
@@ -66,7 +66,7 @@ The [Watchy](https://watchy.sqfmi.com/) by SQFMI is an open-source e-paper smart
 
 Hardware pin assignments and peripheral details used in the Zancig Watchy implementation were sourced from [Watchy_GSR](https://github.com/GuruSR/Watchy_GSR) by GuruSR, whose comprehensive V3 hardware documentation was instrumental in establishing accurate specifications for the MicroPython port.
 
-### Thumby Color (planned)
+### Thumby Color (planned, approx. $50)
 
 The [Thumby Color](https://thumby.us/) by TinyCircuits is a miniature handheld game device based on the RP2350. Its tiny form factor makes it concealable in a palm.
 
