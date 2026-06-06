@@ -141,38 +141,16 @@ The full ZRI specification is in [`docs/Zancig_Routine_Interface.md`](docs/Zanci
 
 ---
 
-## Repository Structure
+## Repository Layout
 
-```
-Zancig/
-├── README.md
-├── docs/                        # Project-wide specs and documentation
-│   └── Zancig_Routine_Interface.md
-├── routines/                    # Cross-device performance routines
-├── Watchy/
-│   ├── docs/                    # Watchy-specific documentation
-│   └── src/                     # Mirrors the watch filesystem
-│       ├── main.py              # Launcher: menu, routine discovery, sleep
-│       ├── zri.py               # ZRI implementation for Watchy V3
-│       ├── zri_cfg.py           # ZRI config (haptic timing, tilt thresholds)
-│       ├── zancig.py            # Low-level hardware driver
-│       ├── zancig_cfg.py        # Hardware pin assignments, I2C addresses
-│       ├── epd_driver.py        # E-paper display driver
-│       ├── bma423.py            # Accelerometer driver
-│       └── routines/            # Watchy-specific routines
-│           ├── zri_test.py      # ZRI API exerciser
-│           ├── tilt_trainer.py  # Accelerometer tilt input trainer
-│           └── btn_check.py     # Button diagnostic
-└── PageWalker/                  # Web tool for book test cribs
-    ├── README.md
-    ├── app.py                   # Flask server
-    ├── walker.py                # Core page-mapping logic
-    ├── templates/               # Web UI
-    ├── texts/                   # Uploaded book texts
-    └── data/                    # Project JSON files
-```
+The repository is organized around three ideas: **shared routines**, **devices**, and **companion apps**.
 
-The `src/` directory under `Watchy/` mirrors the device filesystem directly. To deploy, flash MicroPython to the device and copy the contents of `src/` to the watch. No build step or structural translation required.
+- **`docs/`** -- Project-wide specs and documentation, including the ZRI specification.
+- **`routines/`** -- Cross-device performance routines. These work on any Zancig device that supports the capabilities they use.
+- **One folder per device** (e.g., `Watchy/`) -- Each device has its own `docs/` for device-specific notes and a `src/` folder that mirrors what gets copied directly onto the device. Inside `src/` you'll find the launcher, the ZRI implementation, hardware drivers, config files, and a `routines/` subfolder for routines that only make sense on that particular device. Additional devices follow the same pattern.
+- **One folder per companion app** (e.g., `PageWalker/`) -- Standalone tools that support routine development, like building book test cribs. Each app has its own README with setup instructions. Additional apps follow the same pattern.
+
+Deploying to a device is straightforward: flash MicroPython and copy the contents of that device's `src/` folder onto it. No build step required.
 
 ---
 
