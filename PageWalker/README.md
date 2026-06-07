@@ -78,9 +78,13 @@ Each rule exposes tunable knobs:
 
 Click any page's entry to edit its words manually. Overridden pages are flagged and preserved when you regenerate with a different rule or knobs. Click **Reset** to revert a page to the rule-generated words.
 
-#### Exporting .dat
+#### Exporting
 
-The crib builder exports a `.dat` file ready for device consumption via ZRI `load_data()` / `query_data()`. Format:
+Click **Export .dat** to download the crib as a device-ready `.dat` file. The file is also available at `GET /api/<slug>/crib/export.dat`.
+
+## .dat Output Format
+
+The `.dat` file is the primary output of PageWalker — a compact crib file designed for on-device lookup via ZRI `query_data()`. Each line maps a page number to one or more cue words extracted by the crib builder.
 
 ```
 # The Strange Case of Dr Jekyll and Mr Hyde
@@ -92,11 +96,48 @@ The crib builder exports a `.dat` file ready for device consumption via ZRI `loa
 3|forward;haunted;singular
 ```
 
-Lines starting with `#` are comments. Data lines are `page|word1;word2;word3` (pipe-delimited key and semicolon-separated words).
+### Structure
 
-## JSON Output Format
+- Lines starting with `#` are comments (ignored by `query_data()`).
+- Data lines use pipe-delimited `key|value` format: `page_number|word1;word2;word3`.
+- Words are lowercased and semicolon-separated. The first word is the primary cue; the rest are fallbacks in case the primary isn't distinctive enough.
+- The file is plain text, typically under 2 KB — small enough for any microcontroller's filesystem.
 
-Completed walks are saved to `data/{slug}.json`. Here's the schema:
+### On-device usage
+
+A Zancig routine loads the crib with ZRI's streaming search, so the full file never needs to sit in RAM:
+
+```python
+import zri
+
+zri.init()
+page = zri.get_digit()          # performer enters a page number
+words = zri.query_data("jekyll-hyde", str(page))
+if words:
+    cues = words.split(";")
+    zri.haptic_digit(len(cues[0]))   # buzz the word length
+    zri.show(cues[0])                # or display the cue word
+```
+
+`query_data(name, key)` streams through the `.dat` file line-by-line, matching the key before the pipe. It returns only the value portion (everything after `|`), so the routine parses the semicolons itself.
+
+### Why .dat over JSON
+
+| | `.dat` | `.json` |
+|---|---|---|
+| **Size** | ~1-2 KB | ~5-15 KB |
+| **RAM** | Zero — streamed line-by-line | Full parse into dict |
+| **Lookup** | `query_data()` — O(n) scan, no allocation | `load_data()` — loads entire file |
+| **Use case** | On-device routines (primary) | PageWalker internal state, custom tooling |
+
+For microcontrollers with limited RAM, the `.dat` format is the only practical option. The JSON project file (`data/{slug}.json`) is PageWalker's internal save format, not intended for device deployment.
+
+## JSON Project File (internal)
+
+PageWalker saves walk state to `data/{slug}.json`. This is the working file that tracks page boundaries during the walk — not an output format for devices.
+
+<details>
+<summary>Schema reference</summary>
 
 ```json
 {
@@ -123,8 +164,6 @@ Completed walks are saved to `data/{slug}.json`. Here's the schema:
 }
 ```
 
-### Field Reference
-
 | Field | Description |
 |---|---|
 | `title` | Human-readable book title |
@@ -136,7 +175,7 @@ Completed walks are saved to `data/{slug}.json`. Here's the schema:
 | `chapter_offsets` | Character offsets of detected chapter headings in the text |
 | `pages` | Map of page number (string key) to boundary data |
 
-### Page Boundary Data
+Each page entry:
 
 | Field | Description |
 |---|---|
@@ -144,65 +183,22 @@ Completed walks are saved to `data/{slug}.json`. Here's the schema:
 | `input` | The search text or chapter heading used to find this boundary |
 | `method` | `"picked"` (user selected a word) or `"auto_chapter"` (chapter boundary accepted) |
 
-### Start/End Offset Logic
+Page N spans from `pages[N-1].end_offset` (or `0` for the first page) to `pages[N].end_offset`.
 
-Each page's text spans from the *previous* page's `end_offset` to this page's `end_offset`:
-
-- **Page N start** = `pages[N-1].end_offset` (or `0` for the first page)
-- **Page N end** = `pages[N].end_offset`
+</details>
 
 ## Exporting Page Text
 
-For most uses, the built-in **Crib Builder** handles word extraction and `.dat` export directly. The options below are for custom workflows or external tools.
-
-The easiest way to get page text out is the **Export Pages JSON** button, available on both the walk-complete screen and the Markers page. It downloads a `{slug}-pages.json` file — a flat JSON array where each entry is one page:
+For custom crib logic beyond the built-in presets, you can export the raw page text. The **Export Pages JSON** button (on the walk-complete screen and Markers page) downloads a `{slug}-pages.json` array:
 
 ```json
 [
   {"page": 1, "text": "Mr. Utterson the lawyer was a man of a rugged..."},
-  {"page": 2, "text": "\"Did you ever remark that door?\" he asked; and..."},
-  {"page": 3, "text": "From that time forward, Mr. Utterson began to..."}
+  {"page": 2, "text": "\"Did you ever remark that door?\" he asked; and..."}
 ]
 ```
 
-JSON handles all the escaping (quotes, unicode, etc.) so this never breaks regardless of what's in the text. You can also hit the endpoint directly: `GET /api/<slug>/export`.
-
-## Using the Raw Project JSON
-
-For programmatic access or custom crib logic beyond the built-in presets, you can work with the raw project file (`data/{slug}.json`) and the source text directly:
-
-```python
-import json
-from pathlib import Path
-
-data = json.loads(Path("data/the-strange-case-of-dr-jekyll-and-mr-hyde.json").read_text())
-text = Path(data["text_path"]).read_text(encoding="utf-8")
-
-# Strip Gutenberg boilerplate the same way PageWalker does:
-import re
-end = re.search(r'\*{3}\s*END OF.*?\*{3}', text, re.IGNORECASE)
-if end: text = text[:end.start()]
-start = re.search(r'\*{3}\s*START OF.*?\*{3}', text, re.IGNORECASE)
-if start: text = text[start.end():]
-
-def get_page(page_num):
-    pages = data["pages"]
-    prev = str(page_num - 1)
-    curr = str(page_num)
-    if curr not in pages:
-        return None
-    start = pages[prev]["end_offset"] if prev in pages else 0
-    end = pages[curr]["end_offset"]
-    return text[start:end].strip()
-
-# First line of page 12 — a typical crib entry
-page_text = get_page(12)
-if page_text:
-    first_line = page_text.split('\n')[0]
-    print(f"Page 12: {first_line}")
-```
-
-This gives you full access to each page's text for custom extraction beyond what the built-in crib builder provides.
+Also available at `GET /api/<slug>/export`.
 
 ## Keyboard Shortcuts
 
